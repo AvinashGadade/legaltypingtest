@@ -1,0 +1,36 @@
+import { Navigate, Route, Routes } from 'react-router-dom';
+import Dashboard from './pages/Dashboard.jsx';
+import DownloadPassages from './pages/DownloadPassages.jsx';
+import PracticeSetup from './pages/PracticeSetup.jsx';
+import TypingTest from './pages/TypingTest.jsx';
+import Result from './pages/Result.jsx';
+import AdminLogin from './pages/AdminLogin.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
+import AdminUpload from './pages/AdminUpload.jsx';
+import AdminPassages from './pages/AdminPassages.jsx';
+import StudentLogin from './pages/StudentLogin.jsx';
+import StudentRegister from './pages/StudentRegister.jsx';
+import StudentHistory from './pages/StudentHistory.jsx';
+import ProtectedStudentRoute from './components/ProtectedStudentRoute.jsx';
+import ProtectedAdminRoute from './components/ProtectedAdminRoute.jsx';
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/download-passages" element={<DownloadPassages />} />
+      <Route path="/practice" element={<ProtectedStudentRoute><PracticeSetup /></ProtectedStudentRoute>} />
+      <Route path="/practice/test" element={<ProtectedStudentRoute><TypingTest /></ProtectedStudentRoute>} />
+      <Route path="/result/:id" element={<Result />} />
+      <Route path="/result" element={<Result />} />
+      <Route path="/student/login" element={<StudentLogin />} />
+      <Route path="/student/register" element={<StudentRegister />} />
+      <Route path="/student/history" element={<ProtectedStudentRoute><StudentHistory /></ProtectedStudentRoute>} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/dashboard" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
+      <Route path="/admin/upload" element={<ProtectedAdminRoute><AdminUpload /></ProtectedAdminRoute>} />
+      <Route path="/admin/passages" element={<ProtectedAdminRoute><AdminPassages /></ProtectedAdminRoute>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
