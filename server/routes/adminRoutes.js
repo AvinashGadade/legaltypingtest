@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { extractPdfText } from '../utils/pdfExtractor.js';
 import { splitIntoPassages } from '../utils/passageSplitter.js';
-import { comparePassword, hashPassword, signToken, tokenFromRequest, verifyToken } from '../utils/auth.js';
+import { comparePassword, signToken, tokenFromRequest, verifyToken } from '../utils/auth.js';
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads'),
@@ -25,7 +25,7 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-export function adminRoutes(db) {
+export function adminRoutes(store) {
   const router = express.Router();
 
   router.post('/login', (req, res) => {
@@ -34,32 +34,21 @@ export function adminRoutes(db) {
     const adminEmail = String(process.env.ADMIN_EMAIL || process.env.ADMIN_USERNAME || '').trim().toLowerCase();
     const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH || '';
     const legacyAdminPassword = process.env.ADMIN_PASSWORD || '';
-    const validPassword = adminPasswordHash
-      ? comparePassword(password, adminPasswordHash)
-      : Boolean(legacyAdminPassword && password === legacyAdminPassword);
-    if (email === adminEmail && validPassword) {
-      return res.json({ token: signToken({ sub: 'admin', role: 'admin' }), username: email });
-    }
+    const validPassword = adminPasswordHash ? comparePassword(password, adminPasswordHash) : Boolean(legacyAdminPassword && password === legacyAdminPassword);
+    if (email === adminEmail && validPassword) return res.json({ token: signToken({ sub: 'admin', role: 'admin' }), username: email });
     return res.status(401).json({ error: 'Invalid admin credentials' });
   });
 
   router.use(requireAdmin);
 
-  router.get('/exams', (req, res) => {
-    res.json({ exams: db.prepare('SELECT * FROM exams ORDER BY created_at DESC').all() });
-  });
-
-  router.post('/exams', (req, res) => {
+  router.get('/exams', async (req, res) => res.json({ exams: await store.adminExams() }));
+  router.post('/exams', async (req, res) => {
     const name = String(req.body.name || '').trim();
     if (!name) return res.status(400).json({ error: 'Exam name is required' });
-    const info = db.prepare('INSERT INTO exams (name) VALUES (?)').run(name);
-    res.json({ id: info.lastInsertRowid, name });
+    const id = await store.createExam(name);
+    res.json({ id, name });
   });
-
-  router.delete('/exams/:id', (req, res) => {
-    db.prepare('DELETE FROM exams WHERE id = ?').run(req.params.id);
-    res.json({ ok: true });
-  });
+  router.delete('/exams/:id', async (req, res) => { await store.deleteExam(req.params.id); res.json({ ok: true }); });
 
   router.post('/upload-pdf', upload.single('pdf'), async (req, res) => {
     try {
@@ -67,85 +56,51 @@ export function adminRoutes(db) {
       const title = String(req.body.title || '').trim();
       if (!examId || !title || !req.file) return res.status(400).json({ error: 'Exam, title, and PDF are required' });
 
-      const pdfInfo = db.prepare('INSERT INTO pdfs (exam_id, title, filename, original_filename, file_size) VALUES (?, ?, ?, ?, ?)')
-        .run(examId, title, req.file.filename, req.file.originalname, req.file.size);
-
+      const pdfId = await store.createPdf({ examId, title, filename: req.file.filename, originalFilename: req.file.originalname, fileSize: req.file.size });
       const extractedText = await extractPdfText(req.file.path);
       const manualText = String(req.body.manualText || '').trim();
       const extractedPassages = splitIntoPassages(extractedText);
-      const passages = extractedPassages.length ? extractedPassages : splitIntoPassages(manualText);
-      const insertPassage = db.prepare('INSERT INTO passages (pdf_id, exam_id, passage_number, title, content) VALUES (?, ?, ?, ?, ?)');
-      passages.forEach((content, index) => {
-        insertPassage.run(pdfInfo.lastInsertRowid, examId, index + 1, `Passage ${index + 1}`, content);
-      });
-
-      res.json({
-        id: pdfInfo.lastInsertRowid,
-        passagesCreated: passages.length,
-        extractedTextLength: extractedText.trim().length,
-        warning: passages.length === 0
-          ? 'PDF uploaded, but no selectable passages were extracted. This usually happens with scanned/image PDFs. Add passages manually from Manage Passages.'
-          : ''
-      });
+      const passages = (extractedPassages.length ? extractedPassages : splitIntoPassages(manualText)).map((content, index) => ({
+        pdfId,
+        examId,
+        passageNumber: index + 1,
+        title: `Passage ${index + 1}`,
+        content
+      }));
+      await store.createPassages(passages);
+      res.json({ id: pdfId, passagesCreated: passages.length, extractedTextLength: extractedText.trim().length, warning: passages.length === 0 ? 'PDF uploaded, but no selectable passages were extracted. Add passages manually from Manage Passages.' : '' });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  router.get('/pdfs', (req, res) => {
-    const pdfs = db.prepare(`
-      SELECT p.*, e.name AS exam_name, COUNT(pa.id) AS passage_count
-      FROM pdfs p
-      LEFT JOIN exams e ON e.id = p.exam_id
-      LEFT JOIN passages pa ON pa.pdf_id = p.id
-      GROUP BY p.id
-      ORDER BY p.upload_date DESC
-    `).all();
-    res.json({ pdfs });
-  });
-
-  router.delete('/pdfs/:id', (req, res) => {
-    const pdf = db.prepare('SELECT * FROM pdfs WHERE id = ?').get(req.params.id);
+  router.get('/pdfs', async (req, res) => res.json({ pdfs: await store.adminPdfs() }));
+  router.delete('/pdfs/:id', async (req, res) => {
+    const pdf = await store.getPdf(req.params.id);
     if (pdf) {
       const filePath = path.resolve('uploads', pdf.filename);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
-    db.prepare('DELETE FROM pdfs WHERE id = ?').run(req.params.id);
+    await store.deletePdf(req.params.id);
     res.json({ ok: true });
   });
 
-  router.get('/passages', (req, res) => {
-    const passages = db.prepare(`
-      SELECT pa.*, e.name AS exam_name, p.title AS pdf_title
-      FROM passages pa
-      LEFT JOIN exams e ON e.id = pa.exam_id
-      LEFT JOIN pdfs p ON p.id = pa.pdf_id
-      ORDER BY pa.created_at DESC
-    `).all();
-    res.json({ passages });
-  });
-
-  router.post('/passages', (req, res) => {
+  router.get('/passages', async (req, res) => res.json({ passages: await store.adminPassages() }));
+  router.post('/passages', async (req, res) => {
     const { examId, pdfId, passageNumber, title, content } = req.body;
     if (!examId || !String(content || '').trim()) return res.status(400).json({ error: 'Exam and passage content are required' });
-    const info = db.prepare('INSERT INTO passages (pdf_id, exam_id, passage_number, title, content) VALUES (?, ?, ?, ?, ?)')
-      .run(pdfId || null, examId, passageNumber || 1, title || `Passage ${passageNumber || 1}`, content.trim());
-    res.json({ id: info.lastInsertRowid });
+    if (!pdfId) return res.status(400).json({ error: 'PDF is required so students can access this passage' });
+    const id = await store.createPassage({ examId, pdfId, passageNumber, title, content });
+    res.json({ id });
   });
-
-  router.put('/passages/:id', (req, res) => {
+  router.put('/passages/:id', async (req, res) => {
     const { pdfId, passageNumber, title, content } = req.body;
     if (!pdfId) return res.status(400).json({ error: 'PDF is required so students can access this passage' });
     if (!String(content || '').trim()) return res.status(400).json({ error: 'Passage content is required' });
-    db.prepare('UPDATE passages SET pdf_id = ?, passage_number = ?, title = ?, content = ? WHERE id = ?')
-      .run(pdfId, passageNumber || 1, title || `Passage ${passageNumber || 1}`, content.trim(), req.params.id);
+    await store.updatePassage(req.params.id, { pdfId, passageNumber, title, content });
     res.json({ ok: true });
   });
-
-  router.delete('/passages/:id', (req, res) => {
-    db.prepare('DELETE FROM passages WHERE id = ?').run(req.params.id);
-    res.json({ ok: true });
-  });
+  router.delete('/passages/:id', async (req, res) => { await store.deletePassage(req.params.id); res.json({ ok: true }); });
 
   return router;
 }

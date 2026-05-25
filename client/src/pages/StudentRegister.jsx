@@ -21,9 +21,7 @@ export default function StudentRegister() {
     });
     const data = await res.json();
     if (!res.ok) return setError(data.error || 'Registration failed');
-    localStorage.setItem('studentToken', data.token);
-    localStorage.setItem('studentName', data.student.name);
-    navigate('/practice');
+    navigate('/student/login', { state: { message: 'Registration complete. Please login to open your profile.' } });
   };
 
   return (

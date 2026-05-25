@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import rateLimit from 'express-rate-limit';
-import { initDb } from './utils/initDb.js';
+import { createStore } from './utils/store.js';
 import { publicRoutes } from './routes/publicRoutes.js';
 import { adminRoutes } from './routes/adminRoutes.js';
 
@@ -12,7 +12,7 @@ fs.mkdirSync('database', { recursive: true });
 
 const app = express();
 app.set('trust proxy', 1);
-const db = initDb();
+const store = createStore();
 const port = Number(process.env.PORT) || 5000;
 const allowedOrigins = [
   'http://localhost:5173',
@@ -47,8 +47,8 @@ app.use('/api', rateLimit({
 }));
 app.use('/uploads', express.static('uploads'));
 
-app.use('/api', publicRoutes(db));
-app.use('/api/admin', adminRoutes(db));
+app.use('/api', publicRoutes(store));
+app.use('/api/admin', adminRoutes(store));
 
 app.use((error, req, res, next) => {
   if (error) return res.status(500).json({ error: error.message });
