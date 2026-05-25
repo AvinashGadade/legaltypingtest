@@ -16,6 +16,8 @@ services:
         value: https://www.legaltypingtest.online
       - key: DATA_PROVIDER
         value: sqlite
+      - key: RATE_LIMIT_MAX
+        value: 2000
       - key: JWT_SECRET
         sync: false
       - key: ADMIN_EMAIL
