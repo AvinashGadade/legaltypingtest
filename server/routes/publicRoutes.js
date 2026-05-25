@@ -110,7 +110,9 @@ export function publicRoutes(db) {
   router.get('/pdfs/:id/download', (req, res) => {
     const pdf = db.prepare('SELECT * FROM pdfs WHERE id = ?').get(req.params.id);
     if (!pdf) return res.status(404).json({ error: 'PDF not found' });
-    const filePath = path.resolve('uploads', pdf.filename);
+    const uploadPath = path.resolve('uploads', pdf.filename);
+    const seedPath = path.resolve('seed-pdfs', pdf.filename);
+    const filePath = fs.existsSync(uploadPath) ? uploadPath : seedPath;
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'PDF file is missing on server' });
     return res.download(filePath, pdf.original_filename || pdf.filename);
   });
