@@ -165,22 +165,32 @@ body {
 }
 
 /* ── Live Typing: LIGHT mode passage word classes ── */
-.word-done-correct-light  { color: #16a34a; font-weight: 600; }
-.word-done-error-light    { color: #dc2626; background: #fff1f2; border-radius: 3px; padding: 0 3px; font-weight: 600; }
-.word-current-container-light {
-  background: #eff6ff;
-  border-bottom: 2px solid #4f46e5;
-  border-radius: 3px;
-  padding: 0 2px;
+/*    High-contrast colours so they read clearly on white paper  */
+.word-done-correct-light {
+  color: #15803d;           /* green-700 — clear on white */
+  font-weight: 700;
 }
-.word-pending-light { color: #9ca3af; }
+.word-done-error-light {
+  color: #ffffff;
+  background: #dc2626;      /* solid red badge — impossible to miss */
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-weight: 700;
+}
+.word-current-container-light {
+  background: #dbeafe;      /* blue-100 — obvious highlight */
+  border-bottom: 3px solid #2563eb;   /* blue-600 underline */
+  border-radius: 3px;
+  padding: 0 3px;
+}
+.word-pending-light { color: #6b7280; }   /* gray-500 — readable but not dominant */
 
 /* char classes in light mode */
-.char-correct-light  { color: #16a34a; }
-.char-error-light    { color: #ef4444; text-decoration: underline; }
-.char-cursor-light   { background: #4f46e5; color: #ffffff; border-radius: 2px; animation: blink-cursor 1s step-end infinite; }
-.char-pending-light  { color: #d1d5db; }
-.char-extra-light    { color: #ef4444; border-bottom: 2px solid #ef4444; }
+.char-correct-light  { color: #15803d; font-weight: 700; }
+.char-error-light    { color: #dc2626; text-decoration: underline; text-decoration-color: #dc2626; font-weight: 700; }
+.char-cursor-light   { background: #2563eb; color: #ffffff; border-radius: 2px; padding: 0 1px; animation: blink-cursor 1s step-end infinite; }
+.char-pending-light  { color: #9ca3af; }
+.char-extra-light    { color: #dc2626; border-bottom: 2px solid #dc2626; font-weight: 700; }
 
 /* ── Timer states ────────────────────────────────── */
 .timer-safe   { color: #f1f5f9; }

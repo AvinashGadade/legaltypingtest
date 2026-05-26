@@ -48,8 +48,12 @@ function PassageDisplay({ originalText, typedText, fontSize, dark }) {
 
   return (
     <div
-      className={`max-h-56 overflow-y-auto whitespace-pre-wrap leading-9 select-none ${fontClass}`}
-      style={{ fontFamily: "'Courier New', Courier, monospace" }}
+      className={`max-h-56 overflow-y-auto whitespace-pre-wrap select-none ${fontClass}`}
+      style={{
+        fontFamily: "Georgia, 'Times New Roman', Times, serif",
+        lineHeight: '2.2rem',
+        letterSpacing: '0.01em',
+      }}
     >
       {tokens.map((tok, i) => {
         if (tok.type === 'space') return <span key={i}>{tok.value}</span>;
@@ -188,22 +192,22 @@ export default function TypingTest() {
     mInput:     'border-slate-700 bg-slate-800 text-white focus:border-indigo-500',
     mToggleBg:  'bg-slate-800 hover:bg-slate-700/70',
   } : {
-    page:       'bg-slate-50 text-slate-900',
-    header:     'bg-white border-slate-200',
-    headerText: 'text-slate-400',
-    statsBar:   'bg-white border-slate-200',
+    page:       'bg-gray-100 text-slate-900',
+    header:     'bg-white border-slate-400',
+    headerText: 'text-slate-500',
+    statsBar:   'bg-white border-slate-300',
     dimText:    'text-slate-500',
-    sep:        'bg-slate-200',
-    ctrl:       'bg-slate-100 text-slate-600 hover:bg-slate-200',
-    card:       'bg-white border-slate-200',
-    cardLabel:  'text-slate-400',
-    progBg:     'bg-slate-200',
-    tareaBase:  'bg-white text-slate-900 placeholder-slate-400 border border-slate-200 focus:ring-indigo-500/30',
-    cancelBtn:  'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700',
-    modal:      'bg-white border-slate-200',
+    sep:        'bg-slate-300',
+    ctrl:       'bg-slate-200 text-slate-700 hover:bg-slate-300 border border-slate-300',
+    card:       'bg-white border-slate-400',
+    cardLabel:  'text-slate-500',
+    progBg:     'bg-slate-300',
+    tareaBase:  'bg-white text-slate-900 placeholder-slate-400 border-2 border-slate-400 focus:border-indigo-600 focus:ring-indigo-500/20',
+    cancelBtn:  'border-slate-400 text-slate-600 hover:border-slate-600 hover:text-slate-800',
+    modal:      'bg-white border-slate-400',
     mLabel:     'text-slate-700',
-    mInput:     'border-slate-200 bg-slate-50 text-slate-900 focus:border-indigo-500',
-    mToggleBg:  'bg-slate-50 hover:bg-slate-100',
+    mInput:     'border-slate-300 bg-white text-slate-900 focus:border-indigo-600',
+    mToggleBg:  'bg-slate-100 border border-slate-300 hover:bg-slate-200',
   };
 
   /* ── Submit ── */
@@ -441,7 +445,7 @@ export default function TypingTest() {
 
         {/* ── ON-SCREEN MODE: Live passage highlighting ── */}
         {!isPaper && (
-          <div className={`mb-4 rounded-xl border ${t.card} p-5`}>
+          <div className={`mb-4 rounded-xl border-2 ${t.card} p-5`}>
             <div className="mb-3 flex items-center justify-between">
               <h2 className={`text-[11px] font-bold uppercase tracking-widest ${t.cardLabel}`}>
                 📄 Original Passage — words highlight as you type
@@ -494,7 +498,7 @@ export default function TypingTest() {
         )}
 
         {/* ── Typing Area ── */}
-        <div className={`rounded-xl border ${t.card} p-4`}>
+        <div className={`rounded-xl border-2 ${t.card} p-4`}>
           <div className="mb-2 flex items-center justify-between">
             <p className={`text-[11px] font-bold uppercase tracking-widest ${t.cardLabel}`}>
               ⌨️ Type here
@@ -511,10 +515,15 @@ export default function TypingTest() {
           <textarea
             ref={textareaRef}
             className={`
-              w-full resize-none rounded-lg p-4 outline-none transition-all
-              focus:ring-2 leading-relaxed ${taFontCls} ${t.tareaBase}
+              w-full resize-none rounded-lg p-5 outline-none transition-all
+              focus:ring-2 ${taFontCls} ${t.tareaBase}
             `}
-            style={{ minHeight: '180px', fontFamily: "'Courier New', Courier, monospace" }}
+            style={{
+              minHeight: '200px',
+              fontFamily: "Georgia, 'Times New Roman', Times, serif",
+              lineHeight: '2.0',
+              letterSpacing: '0.015em',
+            }}
             placeholder="Start typing the passage here…"
             value={typedText}
             spellCheck={false}

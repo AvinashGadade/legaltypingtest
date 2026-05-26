@@ -195,26 +195,36 @@ export default function Result() {
           </p>
           <div className="grid gap-4 lg:grid-cols-2">
             {/* Original */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <div className="rounded-xl border-2 border-slate-300 bg-slate-50 p-5">
               <p className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">
                 📄 Original Passage
               </p>
               <div
-                className="whitespace-pre-wrap leading-8 text-sm text-slate-700"
-                style={{ fontFamily: "'Courier New', Courier, monospace" }}
+                className="whitespace-pre-wrap text-slate-800"
+                style={{
+                  fontFamily: "Georgia, 'Times New Roman', Times, serif",
+                  fontSize:   '15px',
+                  lineHeight: '2.0',
+                  letterSpacing: '0.01em',
+                }}
                 dangerouslySetInnerHTML={{
                   __html: result.highlighted_original || escapeHtml(result.original_text || '')
                 }}
               />
             </div>
             {/* Typed */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <div className="rounded-xl border-2 border-slate-300 bg-slate-50 p-5">
               <p className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">
                 ⌨️ Your Typed Text
               </p>
               <div
-                className="whitespace-pre-wrap leading-8 text-sm text-slate-700"
-                style={{ fontFamily: "'Courier New', Courier, monospace" }}
+                className="whitespace-pre-wrap text-slate-800"
+                style={{
+                  fontFamily: "Georgia, 'Times New Roman', Times, serif",
+                  fontSize:   '15px',
+                  lineHeight: '2.0',
+                  letterSpacing: '0.01em',
+                }}
                 dangerouslySetInnerHTML={{
                   __html: result.highlighted_typed || escapeHtml(result.typed_text || '')
                 }}
