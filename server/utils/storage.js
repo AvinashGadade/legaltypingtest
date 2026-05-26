@@ -4,7 +4,10 @@ import WebSocket from 'ws';
 function requiredEnv(name) {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is required for Supabase Storage`);
-  return value;
+  if (name === 'SUPABASE_SERVICE_ROLE_KEY' || name === 'SUPABASE_ANON_KEY') {
+    return String(value).replace(/\s+/g, '');
+  }
+  return String(value).trim();
 }
 
 let client;
