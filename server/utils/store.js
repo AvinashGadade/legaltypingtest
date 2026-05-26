@@ -24,8 +24,14 @@ function databaseUrl() {
 
 function cleanDatabaseUrl(value) {
   let raw = String(value || '').trim();
+  raw = raw.replace(/^[ '"]|['"]$/g, '').trim();
+
+  const embeddedUrl = raw.match(/postgres(?:ql)?:\/\/\S+/i)?.[0];
+  if (embeddedUrl) raw = embeddedUrl;
+
   raw = raw.replace(/^DATABASE_URL\s*=\s*/i, '').trim();
-  raw = raw.replace(/^['"]|['"]$/g, '').trim();
+  raw = raw.replace(/^[ '"]|['"]$/g, '').trim();
+  raw = raw.replace(/[;,]+$/, '').trim();
   return raw;
 }
 
