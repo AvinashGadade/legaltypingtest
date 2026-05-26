@@ -1,22 +1,19 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import fs from 'fs';
 import rateLimit from 'express-rate-limit';
 import { createStore } from './utils/store.js';
 import { publicRoutes } from './routes/publicRoutes.js';
 import { adminRoutes } from './routes/adminRoutes.js';
 
-fs.mkdirSync('uploads', { recursive: true });
-fs.mkdirSync('database', { recursive: true });
 
 const app = express();
 app.set('trust proxy', 1);
 const store = createStore();
 const port = Number(process.env.PORT) || 5000;
 const allowedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
+  'https://www.legaltypingtest.online',
+  'https://legaltypingtest.online',
   process.env.FRONTEND_URL,
   ...(process.env.EXTRA_CORS_ORIGINS || '').split(',')
 ].filter(Boolean);
@@ -45,8 +42,6 @@ app.use('/api', rateLimit({
     );
   }
 }));
-app.use('/uploads', express.static('uploads'));
-
 app.use('/api', publicRoutes(store));
 app.use('/api/admin', adminRoutes(store));
 
@@ -56,5 +51,5 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(port, () => {
-  console.log(`Backend running at http://localhost:${port}`);
+  console.log(`Backend running on port ${port}`);
 });

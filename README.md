@@ -1,11 +1,12 @@
 # Bombay High Court Clerk Typing Practice & Evaluation System
 
-A local full-stack web app for Bombay High Court Clerk typing practice. Students can download passages, select a passage, take a timed typing test, and view detailed WPM, accuracy, marks, qualification, and error analysis. Admins can upload PDFs, extract passages, and manage passage text.
+A production web app for Bombay High Court Clerk typing practice. Students can register/login, download passage PDFs, select passages, take timed typing tests, and view saved history with WPM, accuracy, marks, qualification, and error analysis. Admins can upload PDFs, extract passages, and manage passage text.
 
 ## Features
 
-- Student dashboard with exam, PDF, passage, and practice-test statistics
-- Download uploaded passage PDFs
+- Student registration and login
+- Student profile/history saved in PostgreSQL
+- Download uploaded passage PDFs from Supabase Storage
 - Passage selection by exam, PDF, and passage number
 - 5/10/15 minute typing tests
 - Timer starts on first typed character
@@ -20,69 +21,72 @@ A local full-stack web app for Bombay High Court Clerk typing practice. Students
 
 - Frontend: React + Vite + Tailwind CSS
 - Backend: Node.js + Express.js
-- Database: SQLite via better-sqlite3
-- PDF Upload: Multer
+- Database: Supabase PostgreSQL
+- PDF Storage: Supabase Storage bucket `passage-pdfs`
+- PDF Upload: Multer memory upload
 - PDF Text Extraction: pdf-parse
-- Authentication: Simple admin login from `.env`
+- Authentication: JWT + bcrypt
 
 ## Folder Structure
 
 ```text
-client/   React app
-server/   Express API, SQLite database, uploads
+client/   React app for Vercel
+server/   Express API for Render, PostgreSQL, Supabase Storage
 ```
 
-## Install
+## Required Backend Environment
 
-```bash
-cd /home/avinash/bombay-high-court-typing-practice
-npm run install:all
+```env
+NODE_ENV=production
+FRONTEND_URL=https://www.legaltypingtest.online
+EXTRA_CORS_ORIGINS=https://legaltypingtest.online
+JWT_SECRET=
+ADMIN_EMAIL=
+ADMIN_PASSWORD_HASH=
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_STORAGE_BUCKET=passage-pdfs
+DATABASE_URL=
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+RAZORPAY_WEBHOOK_SECRET=
 ```
 
-## Run Backend
+The backend is online-only now. It requires `DATABASE_URL`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`.
 
-```bash
-cd /home/avinash/bombay-high-court-typing-practice/server
-npm run dev
-```
+## Required Frontend Environment
 
-Backend runs at:
-
-```text
-http://localhost:5000
-```
-
-## Run Frontend
-
-```bash
-cd /home/avinash/bombay-high-court-typing-practice/client
-npm run dev
-```
-
-Frontend runs at:
-
-```text
-http://localhost:5173
+```env
+VITE_API_BASE_URL=https://YOUR_RENDER_BACKEND_URL/api
+VITE_RAZORPAY_KEY_ID=
 ```
 
 ## Admin Login
 
-Default credentials are stored in `server/.env`:
+Use the credentials from Render environment variables:
 
 ```text
-Username: admin
-Password: admin123
+ADMIN_EMAIL
+ADMIN_PASSWORD_HASH
+```
+
+Generate the hash with:
+
+```bash
+cd server
+node -e "import('bcryptjs').then(b=>console.log(b.default.hashSync('YOUR_ADMIN_PASSWORD', 10)))"
 ```
 
 ## Upload PDF
 
-1. Open `/admin/login`
-2. Login as admin
-3. Go to Upload PDF
-4. Choose exam, title, and PDF file
-5. The backend stores the PDF in `server/uploads`
-6. Text is extracted and split into passages
-7. Edit passages in `/admin/passages` if needed
+1. Open `/admin/login`.
+2. Login as admin.
+3. Go to Upload PDF.
+4. Choose exam, title, and PDF file.
+5. The backend uploads the PDF to Supabase Storage.
+6. PDF metadata is saved in PostgreSQL table `pdfs`.
+7. Text is extracted and passages are saved in PostgreSQL table `passages`.
+8. Edit passages in `/admin/passages` if needed.
 
 ## Typing Result Calculation
 
@@ -105,6 +109,9 @@ Password: admin123
 - `/download-passages` Download passages
 - `/practice` Passage selection
 - `/practice/test` Typing test
+- `/student/register` Student registration
+- `/student/login` Student login
+- `/student/history` Student profile/history
 - `/result/:id` Shareable result page
 - `/admin/login` Admin login
 - `/admin/dashboard` Admin dashboard

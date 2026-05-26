@@ -1,10 +1,9 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const FALLBACK_SECRET = 'local-development-secret-change-in-production';
-
 export function jwtSecret() {
-  return process.env.JWT_SECRET || FALLBACK_SECRET;
+  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is required');
+  return process.env.JWT_SECRET;
 }
 
 export function hashPassword(password) {
@@ -13,10 +12,7 @@ export function hashPassword(password) {
 
 export function comparePassword(password, hash) {
   if (!hash) return false;
-  if (/^[a-f0-9]{64}$/i.test(hash)) {
-    // Legacy local SHA-256 hashes from early development are not accepted for production login.
-    return false;
-  }
+  if (/^[a-f0-9]{64}$/i.test(hash)) return false;
   return bcrypt.compareSync(String(password), hash);
 }
 

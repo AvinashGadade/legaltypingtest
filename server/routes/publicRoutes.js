@@ -1,7 +1,6 @@
 import express from 'express';
-import fs from 'fs';
-import path from 'path';
 import { calculateTypingResult } from '../utils/typingCalculator.js';
+import { signedPdfUrl } from '../utils/storage.js';
 import { comparePassword, hashPassword, signToken, tokenFromRequest, verifyToken } from '../utils/auth.js';
 
 async function getStudentFromRequest(store, req) {
@@ -69,13 +68,14 @@ export function publicRoutes(store) {
   router.get('/exams/:id/pdfs', async (req, res) => res.json({ pdfs: await store.pdfsByExam(req.params.id) }));
 
   router.get('/pdfs/:id/download', async (req, res) => {
-    const pdf = await store.getPdf(req.params.id);
-    if (!pdf) return res.status(404).json({ error: 'PDF not found' });
-    const uploadPath = path.resolve('uploads', pdf.filename);
-    const seedPath = path.resolve('seed-pdfs', pdf.filename);
-    const filePath = fs.existsSync(uploadPath) ? uploadPath : seedPath;
-    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'PDF file is missing on server' });
-    return res.download(filePath, pdf.original_filename || pdf.filename);
+    try {
+      const pdf = await store.getPdf(req.params.id);
+      if (!pdf) return res.status(404).json({ error: 'PDF not found' });
+      const url = await signedPdfUrl(pdf.filename);
+      return res.redirect(url);
+    } catch (error) {
+      return res.status(404).json({ error: error.message });
+    }
   });
 
   router.get('/pdfs/:id/passages', async (req, res) => res.json({ passages: await store.passagesByPdf(req.params.id) }));

@@ -1,44 +1,43 @@
 # legaltypingtest.online Deployment Guide
 
-## Critical security first
+## Security First
 
-You pasted live secrets in chat. Before production, rotate/recreate:
+Rotate any secrets that were shared in chat or committed anywhere outside Render/Supabase/Vercel:
 
 - Supabase service role key
 - Supabase database password / connection string
 - Razorpay key secret
 - Admin password
+- JWT secret
 
 Do not commit real secrets to GitHub.
 
-## Accounts needed
+## Accounts Needed
 
-- Supabase: PostgreSQL database + Storage bucket `passage-pdfs`
+- Supabase: PostgreSQL database + private Storage bucket `passage-pdfs`
 - Razorpay: payment gateway for Rs. 100 lifetime payment
 - Render: Node/Express backend hosting
 - Vercel: React frontend hosting
-- Domain DNS provider: legaltypingtest.online
+- Domain DNS provider: `legaltypingtest.online`
 
-## Supabase setup
+## Supabase Setup
 
 1. Open Supabase project.
-2. Go to SQL Editor.
-3. Run `supabase/schema.sql` from this repo.
-4. Go to Storage.
-5. Create bucket: `passage-pdfs`.
-6. Keep bucket private.
+2. Go to Storage.
+3. Create bucket: `passage-pdfs`.
+4. Keep bucket private.
+5. The backend now creates required PostgreSQL tables automatically on startup, but you can still run `supabase/schema.sql` manually if needed.
 
-Required env values:
+Required backend env values:
 
 ```env
 SUPABASE_URL=
-SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 DATABASE_URL=
 SUPABASE_STORAGE_BUCKET=passage-pdfs
 ```
 
-## Generate secure values
+## Generate Secure Values
 
 JWT secret:
 
@@ -53,9 +52,9 @@ cd server
 node -e "import('bcryptjs').then(b=>console.log(b.default.hashSync('YOUR_ADMIN_PASSWORD', 10)))"
 ```
 
-## Render backend
+## Render Backend
 
-Create a new Render Web Service from this repo.
+Create or update the Render Web Service from this repo.
 
 Settings:
 
@@ -63,20 +62,19 @@ Settings:
 Root Directory: server
 Build Command: npm install
 Start Command: npm start
-Node: >=20
+Node: 20
 ```
 
 Environment variables:
 
 ```env
 NODE_ENV=production
-FRONTEND_URL=https://legaltypingtest.online
-EXTRA_CORS_ORIGINS=https://www.legaltypingtest.online
+FRONTEND_URL=https://www.legaltypingtest.online
+EXTRA_CORS_ORIGINS=https://legaltypingtest.online
 JWT_SECRET=
 ADMIN_EMAIL=
 ADMIN_PASSWORD_HASH=
 SUPABASE_URL=
-SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_STORAGE_BUCKET=passage-pdfs
 DATABASE_URL=
@@ -85,15 +83,11 @@ RAZORPAY_KEY_SECRET=
 RAZORPAY_WEBHOOK_SECRET=
 ```
 
-After deployment, copy the Render backend URL. Example:
+The backend is PostgreSQL/Supabase-only. If `DATABASE_URL`, `SUPABASE_URL`, or `SUPABASE_SERVICE_ROLE_KEY` is missing, it should fail loudly instead of saving data locally.
 
-```text
-https://legaltypingtest-api.onrender.com
-```
+## Vercel Frontend
 
-## Vercel frontend
-
-Create Vercel project from this repo.
+Create or update the Vercel project from this repo.
 
 Settings:
 
@@ -117,26 +111,13 @@ In Vercel:
 1. Project Settings -> Domains
 2. Add `legaltypingtest.online`
 3. Add `www.legaltypingtest.online`
-4. Vercel will show DNS records.
-5. Add those DNS records in your domain provider.
+4. Add the DNS records Vercel gives you at your domain provider.
 
-Typical records are one `A` record for root and one `CNAME` for `www`, but use exactly what Vercel shows.
+## Data Flow
 
-## Razorpay webhook
-
-After backend is live, create Razorpay webhook:
-
-```text
-https://YOUR_RENDER_BACKEND_URL/api/payments/webhook
-```
-
-Enable events:
-
-- payment.captured
-- payment.failed
-- order.paid
-
-## Current status of this repo
-
-The repo is prepared for production configuration and has schema/env/deploy files.
-The active data layer is still SQLite for local development. The next implementation step is replacing the route database calls with Supabase/PostgreSQL and moving PDF upload/download to Supabase Storage.
+- Student users are saved in PostgreSQL table `users`.
+- Admin uploaded PDF metadata is saved in PostgreSQL table `pdfs`.
+- PDF files are saved in Supabase Storage bucket `passage-pdfs`.
+- Extracted/manual passages are saved in PostgreSQL table `passages`.
+- Student results/history are saved in PostgreSQL table `test_results`.
+- PDF downloads use signed Supabase Storage URLs.
