@@ -4,12 +4,50 @@ const { Pool } = pg;
 
 const DEFAULT_EXAM = 'Bombay High Court Clerk Typing';
 
+function databaseUrl() {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) throw new Error('DATABASE_URL is required. This backend is configured for online PostgreSQL only.');
+
+  try {
+    new URL(raw);
+    return raw;
+  } catch {
+    const fixed = encodeDatabasePassword(raw);
+    try {
+      new URL(fixed);
+      console.warn('DATABASE_URL contained URL-special characters in the password. Encoded password automatically. Prefer fixing it in Render env.');
+      return fixed;
+    } catch {
+      throw new Error('DATABASE_URL is invalid. Use the Supabase PostgreSQL connection string and URL-encode special password characters, for example # must be %23.');
+    }
+  }
+}
+
+function encodeDatabasePassword(raw) {
+  const protocolEnd = raw.indexOf('://');
+  const at = raw.lastIndexOf('@');
+  if (protocolEnd === -1 || at === -1) return raw;
+
+  const beforeAuth = raw.slice(0, protocolEnd + 3);
+  const auth = raw.slice(protocolEnd + 3, at);
+  const afterAuth = raw.slice(at);
+  const colon = auth.indexOf(':');
+  if (colon === -1) return raw;
+
+  const user = auth.slice(0, colon);
+  const password = auth.slice(colon + 1);
+  let encodedPassword = password;
+  try {
+    encodedPassword = encodeURIComponent(decodeURIComponent(password));
+  } catch {
+    encodedPassword = encodeURIComponent(password);
+  }
+  return beforeAuth + user + ':' + encodedPassword + afterAuth;
+}
+
 export class PostgresStore {
   constructor() {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('DATABASE_URL is required. This backend is configured for online PostgreSQL only.');
-    }
-    this.pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+    this.pool = new Pool({ connectionString: databaseUrl(), ssl: { rejectUnauthorized: false } });
     this.ready = this.ensureSchemaAndSeed();
   }
 
