@@ -115,7 +115,7 @@ export default function TypingTest() {
   const [started,      setStarted]      = useState(false);
   const [backspaces,   setBackspaces]   = useState(0);
   const [allowBksp,    setAllowBksp]    = useState(true);
-  const [fontSize,     setFontSize]     = useState('medium');
+  const [fontSize,     setFontSize]     = useState('large');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [submitting,   setSubmitting]   = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -471,29 +471,16 @@ export default function TypingTest() {
           </div>
         )}
 
-        {/* ── PAPER MODE: Reminder card ── */}
+        {/* ── PAPER MODE: Just a download link ── */}
         {isPaper && (
-          <div className="mb-4 rounded-xl border-2 border-amber-200 bg-amber-50 p-5">
-            <div className="flex items-start gap-3">
-              <span className="text-3xl">📄</span>
-              <div>
-                <h2 className="font-bold text-amber-900">Paper / Hard Copy Mode</h2>
-                <p className="mt-1 text-sm text-amber-800">
-                  The passage is intentionally hidden. Type from your <strong>printed paper</strong> placed
-                  next to your keyboard — exactly as in the real BHC exam hall.
-                </p>
-                <p className="mt-2 text-xs text-amber-700">
-                  Don't have the paper yet?{' '}
-                  <a
-                    href={`${API}/pdfs/${passage.pdf_id}/download`}
-                    className="font-bold underline hover:text-amber-900"
-                  >
-                    Download the PDF
-                  </a>{' '}
-                  and print it first.
-                </p>
-              </div>
-            </div>
+          <div className={`mb-4 flex items-center gap-3 rounded-xl border-2 ${t.card} px-5 py-3`}>
+            <span className={`text-sm font-semibold ${t.dimText}`}>📄 Paper mode — type from your printed copy.</span>
+            <a
+              href={`${API}/pdfs/${passage.pdf_id}/download`}
+              className="ml-auto flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-500"
+            >
+              <Download size={14} /> Download PDF
+            </a>
           </div>
         )}
 
@@ -519,9 +506,9 @@ export default function TypingTest() {
               focus:ring-2 ${taFontCls} ${t.tareaBase}
             `}
             style={{
-              minHeight: '200px',
+              minHeight: '340px',
               fontFamily: "Georgia, 'Times New Roman', Times, serif",
-              lineHeight: '2.0',
+              lineHeight: '2.1',
               letterSpacing: '0.015em',
             }}
             placeholder="Start typing the passage here…"
