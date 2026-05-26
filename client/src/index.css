@@ -3,49 +3,211 @@
 @tailwind utilities;
 
 :root {
-  color: #172033;
-  background: #f3f4f6;
+  color: #1e293b;
+  background: #f1f5f9;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: #f3f4f6;
+  background: #f1f5f9;
 }
 
+/* ── Cards ─────────────────────────────────────────── */
 .card {
   @apply rounded-2xl bg-white shadow-sm border border-slate-100;
 }
+.card-hover {
+  @apply rounded-2xl bg-white shadow-sm border border-slate-100 transition-all duration-200 hover:shadow-md hover:border-slate-200;
+}
 
+/* ── Buttons ────────────────────────────────────────── */
 .btn-primary {
-  @apply rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-3 font-semibold text-white shadow-sm hover:from-indigo-700 hover:to-purple-700;
+  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-3 font-semibold text-white shadow-sm transition-all duration-200 hover:from-indigo-700 hover:to-purple-700 hover:shadow-md active:scale-95;
 }
-
 .btn-blue {
-  @apply rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700;
+  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition-all duration-200 hover:bg-blue-700 active:scale-95;
 }
-
 .btn-cyan {
-  @apply rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-white hover:bg-cyan-600;
+  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 font-semibold text-white transition-all duration-200 hover:bg-cyan-600 active:scale-95;
 }
-
 .btn-red {
-  @apply rounded-xl bg-rose-600 px-5 py-3 font-semibold text-white hover:bg-rose-700;
+  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-3 font-semibold text-white transition-all duration-200 hover:bg-rose-700 active:scale-95;
+}
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 py-3 font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 active:scale-95;
 }
 
+/* ── Input ──────────────────────────────────────────── */
 .input {
-  @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100;
+  @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition-all duration-150 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100;
 }
 
-.err-addition { background: #fde68a; padding: 1px 3px; border-radius: 4px; }
-.err-omission { background: #fecaca; padding: 1px 3px; border-radius: 4px; }
-.err-full { background: #fb7185; color: #fff; padding: 1px 3px; border-radius: 4px; }
-.err-capitalization { background: #f0abfc; padding: 1px 3px; border-radius: 4px; }
-.err-spacing { background: #7dd3fc; padding: 1px 3px; border-radius: 4px; }
-.err-punctuation { background: #fdba74; padding: 1px 3px; border-radius: 4px; }
-.err-transposition { background: #c4b5fd; padding: 1px 3px; border-radius: 4px; }
+/* ── Result page: Error highlighting ───────────────── */
+.err-addition {
+  background: #fef08a;
+  color: #713f12;
+  padding: 2px 5px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+.err-omission {
+  background: #fecaca;
+  color: #7f1d1d;
+  padding: 2px 5px;
+  border-radius: 5px;
+  text-decoration: line-through;
+  font-weight: 600;
+}
+.err-full {
+  background: #f43f5e;
+  color: #fff;
+  padding: 2px 5px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+.err-capitalization {
+  background: #c026d3;
+  color: #fff;
+  padding: 2px 5px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+.err-spacing {
+  background: #0ea5e9;
+  color: #fff;
+  padding: 2px 5px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+.err-punctuation {
+  background: #f97316;
+  color: #fff;
+  padding: 2px 5px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+.err-transposition {
+  background: #7c3aed;
+  color: #fff;
+  padding: 2px 5px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+.correct-word {
+  color: #16a34a;
+}
+.typed-correction {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  margin: 0 1px;
+}
+.expected-word {
+  background: #dcfce7;
+  color: #166534;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0;
+}
 
-.correct-word { background: #dcfce7; color: #166534; padding: 1px 3px; border-radius: 4px; }
-.typed-correction { display: inline-flex; align-items: baseline; gap: 2px; margin: 0 1px; }
-.expected-word { background: #dcfce7; color: #166534; padding: 1px 3px; border-radius: 4px; font-weight: 700; }
+/* ── Live Typing Test: Passage word highlighting ──── */
+/* Completed words */
+.word-done-correct {
+  color: #4ade80;
+  font-weight: 500;
+}
+.word-done-error {
+  color: #ff6b6b;
+  background: rgba(244, 63, 94, 0.15);
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 500;
+}
+
+/* Current word being typed */
+.word-current-container {
+  background: rgba(99, 102, 241, 0.2);
+  border-bottom: 2px solid #818cf8;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+/* Pending words */
+.word-pending {
+  color: #64748b;
+}
+
+/* Character-level inside current word */
+.char-correct {
+  color: #4ade80;
+}
+.char-error {
+  color: #f87171;
+  text-decoration: underline;
+  text-decoration-color: #ef4444;
+}
+.char-cursor {
+  background: #6366f1;
+  color: #ffffff;
+  border-radius: 2px;
+  animation: blink-cursor 1s step-end infinite;
+}
+.char-pending {
+  color: #94a3b8;
+}
+.char-extra {
+  color: #f87171;
+  border-bottom: 2px solid #ef4444;
+}
+
+/* ── Timer states ────────────────────────────────── */
+.timer-safe   { color: #f1f5f9; }
+.timer-warn   { color: #fbbf24; }
+.timer-danger { color: #f87171; animation: pulse-glow 1s ease-in-out infinite; }
+
+/* ── Animations ─────────────────────────────────── */
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up {
+  animation: fadeInUp 0.35s ease-out both;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide-down {
+  animation: slideDown 0.25s ease-out both;
+}
+
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.pop-in {
+  animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ── Toggle switch ──────────────────────────────── */
+.toggle-track {
+  @apply relative h-6 w-11 rounded-full transition-colors duration-200 cursor-pointer;
+}
+.toggle-thumb {
+  @apply absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200;
+}
