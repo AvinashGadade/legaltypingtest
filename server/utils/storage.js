@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 
 function requiredEnv(name) {
   const value = process.env[name];
@@ -12,7 +13,8 @@ let bucketReady;
 function supabase() {
   if (!client) {
     client = createClient(requiredEnv('SUPABASE_URL'), requiredEnv('SUPABASE_SERVICE_ROLE_KEY'), {
-      auth: { persistSession: false }
+      auth: { persistSession: false },
+      realtime: { transport: WebSocket }
     });
   }
   return client;
