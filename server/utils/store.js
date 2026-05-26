@@ -169,6 +169,9 @@ export class PostgresStore {
         razorpay_order_id text,
         razorpay_payment_id text,
         razorpay_signature text,
+        provider text DEFAULT 'cashfree',
+        cashfree_order_id text,
+        cashfree_payment_session_id text,
         amount integer NOT NULL,
         currency text NOT NULL DEFAULT 'INR',
         status text NOT NULL DEFAULT 'created',
@@ -179,6 +182,15 @@ export class PostgresStore {
       CREATE INDEX IF NOT EXISTS idx_results_user_id ON test_results(user_id);
       CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
     `);
+
+    await this.pool.query("ALTER TABLE payments ADD COLUMN IF NOT EXISTS provider text DEFAULT 'cashfree'");
+    await this.pool.query("ALTER TABLE payments ADD COLUMN IF NOT EXISTS cashfree_order_id text");
+    await this.pool.query("ALTER TABLE payments ADD COLUMN IF NOT EXISTS cashfree_payment_session_id text");
+    await this.pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status text DEFAULT 'free'");
+    await this.pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_type text");
+    await this.pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS paid_at timestamptz");
+    await this.pool.query("ALTER TABLE passages ADD COLUMN IF NOT EXISTS is_free boolean DEFAULT false");
+
 
     await this.pool.query(
       'INSERT INTO exams (name) SELECT $1 WHERE NOT EXISTS (SELECT 1 FROM exams WHERE name = $1)',
@@ -234,7 +246,7 @@ export class PostgresStore {
   }
 
   async passagesByPdf(pdfId) {
-    const { rows } = await this.q('SELECT id, pdf_id, exam_id, passage_number, title, content FROM passages WHERE pdf_id = $1 ORDER BY passage_number', [pdfId]);
+    const { rows } = await this.q('SELECT id, pdf_id, exam_id, passage_number, title, (passage_number <= 4 OR is_free) AS is_free, (passage_number > 4 AND NOT is_free) AS locked FROM passages WHERE pdf_id = $1 ORDER BY passage_number', [pdfId]);
     return rows;
   }
 
@@ -258,12 +270,12 @@ export class PostgresStore {
   }
 
   async getStudentByEmail(email) {
-    const { rows } = await this.q("SELECT id, name, email, password_hash FROM users WHERE email = $1 AND role = 'student'", [email]);
+    const { rows } = await this.q("SELECT id, name, email, password_hash, subscription_status, subscription_type, paid_at FROM users WHERE email = $1 AND role = 'student'", [email]);
     return rows[0];
   }
 
   async getStudentById(id) {
-    const { rows } = await this.q("SELECT id, name, email FROM users WHERE id = $1 AND role = 'student'", [id]);
+    const { rows } = await this.q("SELECT id, name, email, subscription_status, subscription_type, paid_at FROM users WHERE id = $1 AND role = 'student'", [id]);
     return rows[0];
   }
 
@@ -377,7 +389,31 @@ export class PostgresStore {
   }
 
   async deletePassage(id) { await this.q('DELETE FROM passages WHERE id = $1', [id]); }
+
+  async activateLifetimeSubscription(studentId) {
+    const { rows } = await this.q(
+      "UPDATE users SET subscription_status = 'active', subscription_type = 'lifetime', paid_at = now() WHERE id = $1 RETURNING id, name, email, subscription_status, subscription_type, paid_at",
+      [studentId]
+    );
+    return rows[0];
+  }
+
+  async createCashfreePayment({ studentId, orderId, paymentSessionId, amount }) {
+    const { rows } = await this.q(
+      "INSERT INTO payments (user_id, provider, cashfree_order_id, cashfree_payment_session_id, amount, currency, status) VALUES ($1, 'cashfree', $2, $3, $4, 'INR', 'created') RETURNING id",
+      [studentId, orderId, paymentSessionId, amount]
+    );
+    return rows[0].id;
+  }
+
+  async markCashfreePaymentPaid(orderId) {
+    await this.q("UPDATE payments SET status = 'paid' WHERE cashfree_order_id = $1", [orderId]);
+    const { rows } = await this.q('SELECT user_id FROM payments WHERE cashfree_order_id = $1 ORDER BY id DESC LIMIT 1', [orderId]);
+    if (rows[0]?.user_id) return this.activateLifetimeSubscription(rows[0].user_id);
+    return null;
+  }
 }
+
 
 export function createStore() {
   return new PostgresStore();

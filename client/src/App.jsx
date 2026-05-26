@@ -11,6 +11,7 @@ import AdminPassages from './pages/AdminPassages.jsx';
 import StudentLogin from './pages/StudentLogin.jsx';
 import StudentRegister from './pages/StudentRegister.jsx';
 import StudentHistory from './pages/StudentHistory.jsx';
+import Subscription from './pages/Subscription.jsx';
 import ProtectedStudentRoute from './components/ProtectedStudentRoute.jsx';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute.jsx';
 
@@ -19,13 +20,14 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Dashboard />} />
       <Route path="/download-passages" element={<DownloadPassages />} />
-      <Route path="/practice" element={<ProtectedStudentRoute><PracticeSetup /></ProtectedStudentRoute>} />
-      <Route path="/practice/test" element={<ProtectedStudentRoute><TypingTest /></ProtectedStudentRoute>} />
+      <Route path="/practice" element={<PracticeSetup />} />
+      <Route path="/practice/test" element={<TypingTest />} />
       <Route path="/result/:id" element={<Result />} />
       <Route path="/result" element={<Result />} />
       <Route path="/student/login" element={<StudentLogin />} />
       <Route path="/student/register" element={<StudentRegister />} />
       <Route path="/student/history" element={<ProtectedStudentRoute><StudentHistory /></ProtectedStudentRoute>} />
+      <Route path="/subscription" element={<ProtectedStudentRoute><Subscription /></ProtectedStudentRoute>} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
       <Route path="/admin/upload" element={<ProtectedAdminRoute><AdminUpload /></ProtectedAdminRoute>} />

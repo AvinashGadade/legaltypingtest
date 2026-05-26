@@ -4,6 +4,9 @@ A production web app for Bombay High Court Clerk typing practice. Students can r
 
 ## Features
 
+- First 4 passages are free without login
+- Passage 5 onwards requires student login and active lifetime subscription
+- Cashfree-ready Rs. 100 lifetime subscription flow
 - Student registration and login
 - Student profile/history saved in PostgreSQL
 - Download uploaded passage PDFs from Supabase Storage
@@ -46,9 +49,10 @@ SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_STORAGE_BUCKET=passage-pdfs
 DATABASE_URL=
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-RAZORPAY_WEBHOOK_SECRET=
+CASHFREE_APP_ID=
+CASHFREE_SECRET_KEY=
+CASHFREE_ENV=sandbox
+ALLOW_MOCK_PAYMENTS=false
 ```
 
 The backend is online-only now. It requires `DATABASE_URL`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`.
@@ -57,7 +61,7 @@ The backend is online-only now. It requires `DATABASE_URL`, `SUPABASE_URL`, and 
 
 ```env
 VITE_API_BASE_URL=https://YOUR_RENDER_BACKEND_URL/api
-VITE_RAZORPAY_KEY_ID=
+
 ```
 
 ## Admin Login

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, LogOut, Upload, FileText, Keyboard, Download, UserPlus, History } from 'lucide-react';
+import { Home, LogOut, Upload, FileText, Keyboard, Download, UserPlus, History, CreditCard } from 'lucide-react';
 
 export default function Navbar({ admin = false }) {
   const navigate = useNavigate();
@@ -25,6 +25,7 @@ export default function Navbar({ admin = false }) {
           {studentName && !admin && (
             <>
               <Link to="/student/history" className="flex items-center gap-1 rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20"><History size={16} /> History</Link>
+              <Link to="/subscription" className="flex items-center gap-1 rounded-lg bg-cyan-400 px-3 py-2 text-white hover:bg-cyan-500"><CreditCard size={16} /> Subscribe</Link>
               <button onClick={studentLogout} className="flex items-center gap-1 rounded-lg bg-white/15 px-3 py-2 hover:bg-white/25"><LogOut size={16} /> {studentName}</button>
             </>
           )}

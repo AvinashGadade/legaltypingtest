@@ -40,9 +40,12 @@ export default function TypingTest() {
     submittedRef.current = true;
     setSubmitting(true);
     const durationSeconds = duration - remaining || 1;
+    const token = localStorage.getItem('studentToken');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const res = await fetch(`${API}/results`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('studentToken')}` },
+      headers,
       body: JSON.stringify({
         examId: passage.exam_id,
         pdfId: passage.pdf_id,
@@ -58,7 +61,12 @@ export default function TypingTest() {
     if (!res.ok) {
       submittedRef.current = false;
       setSubmitting(false);
+      if (data.code === 'LOGIN_REQUIRED') return navigate('/student/login', { state: { from: '/practice', message: 'Please login to save premium passage results.' } });
+      if (data.code === 'SUBSCRIPTION_REQUIRED') return navigate('/subscription', { state: { message: 'Please unlock lifetime access to submit this passage.' } });
       return alert(data.error || 'Unable to submit result');
+    }
+    if (!data.id) {
+      return navigate('/result/preview', { state: { result: { ...data.result, exam_name: passage.exam_name, pdf_title: passage.pdf_title, passage_number: passage.passage_number, original_text: passage.content, typed_text: typedText, highlighted_original: data.result.highlightedOriginal, highlighted_typed: data.result.highlightedTyped, duration_formatted: data.result.durationFormatted, duration_seconds: data.result.durationSeconds, keystrokes: data.result.totalKeystrokes, backspaces: data.result.backspaceCount, total_words_typed: data.result.totalWordsTyped, gross_wpm: data.result.grossWpm, net_wpm: data.result.netWpm, error_percentage: data.result.errorPercentage, full_errors: data.result.errors.fullErrors, half_errors: data.result.errors.halfErrors, total_errors: data.result.errors.totalErrors, spelling_substitution_repetition: data.result.errors.spellingSubstitutionRepetition, incomplete_words: data.result.errors.incompleteWords, spacing_errors: data.result.errors.spacing, capitalization_errors: data.result.errors.capitalization, punctuation_errors: data.result.errors.punctuation, transposition_errors: data.result.errors.transposition, paragraphic_errors: data.result.errors.paragraphic, tab_errors: data.result.errors.tab, additions: data.result.errors.additions, omissions: data.result.errors.omissions }, preview: true } });
     }
     navigate(`/result/${data.id}`);
   };

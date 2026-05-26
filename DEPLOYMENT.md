@@ -6,7 +6,7 @@ Rotate any secrets that were shared in chat or committed anywhere outside Render
 
 - Supabase service role key
 - Supabase database password / connection string
-- Razorpay key secret
+- Cashfree key secret
 - Admin password
 - JWT secret
 
@@ -15,7 +15,7 @@ Do not commit real secrets to GitHub.
 ## Accounts Needed
 
 - Supabase: PostgreSQL database + private Storage bucket `passage-pdfs`
-- Razorpay: payment gateway for Rs. 100 lifetime payment
+- Cashfree: payment gateway for Rs. 100 lifetime payment
 - Render: Node/Express backend hosting
 - Vercel: React frontend hosting
 - Domain DNS provider: `legaltypingtest.online`
@@ -78,9 +78,10 @@ SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_STORAGE_BUCKET=passage-pdfs
 DATABASE_URL=
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-RAZORPAY_WEBHOOK_SECRET=
+CASHFREE_APP_ID=
+CASHFREE_SECRET_KEY=
+CASHFREE_ENV=sandbox
+ALLOW_MOCK_PAYMENTS=false
 ```
 
 The backend is PostgreSQL/Supabase-only. If `DATABASE_URL`, `SUPABASE_URL`, or `SUPABASE_SERVICE_ROLE_KEY` is missing, it should fail loudly instead of saving data locally.
@@ -101,7 +102,6 @@ Environment variables:
 
 ```env
 VITE_API_BASE_URL=https://YOUR_RENDER_BACKEND_URL/api
-VITE_RAZORPAY_KEY_ID=YOUR_RAZORPAY_KEY_ID
 ```
 
 ## Domain: legaltypingtest.online

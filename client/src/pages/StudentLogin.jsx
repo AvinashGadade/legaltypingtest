@@ -11,6 +11,7 @@ export default function StudentLogin() {
   const navigate = useNavigate();
   const location = useLocation();
   const message = location.state?.message || '';
+  const redirectTo = location.state?.from || '/student/history';
 
   const submit = async (event) => {
     event.preventDefault();
@@ -24,7 +25,7 @@ export default function StudentLogin() {
     if (!res.ok) return setError(data.error || 'Login failed');
     localStorage.setItem('studentToken', data.token);
     localStorage.setItem('studentName', data.student.name);
-    navigate('/student/history');
+    navigate(redirectTo);
   };
 
   return (
