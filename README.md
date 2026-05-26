@@ -1,6 +1,6 @@
 # Bombay High Court Clerk Typing Practice & Evaluation System
 
-A production web app for Bombay High Court Clerk typing practice. Students can register/login, download passage PDFs, select passages, take timed typing tests, and view saved history with WPM, accuracy, marks, qualification, and error analysis. Admins can upload PDFs, extract passages, and manage passage text.
+A production web app for Bombay High Court Clerk typing practice. Students can register/login, download passage PDFs, select passages, take timed typing tests, and view saved history with WPM, accuracy, marks, qualification, and error analysis. Admins can upload PDFs and manage passage text manually.
 
 ## Features
 
@@ -15,7 +15,7 @@ A production web app for Bombay High Court Clerk typing practice. Students can r
 - Copy/paste and right-click disabled in typing box
 - Full result page with Gross WPM, Net WPM, accuracy, marks, qualification, and formulas
 - Word-level and character-aware error comparison with highlighted mistakes
-- Admin login, exam creation, PDF upload, passage extraction, manual passage editing
+- Admin login, exam creation, PDF upload, manual passage editing
 
 ## Tech Stack
 
@@ -24,8 +24,7 @@ A production web app for Bombay High Court Clerk typing practice. Students can r
 - Database: Supabase PostgreSQL
 - PDF Storage: Supabase Storage bucket `passage-pdfs`
 - PDF Upload: Multer memory upload
-- PDF Text Extraction: pdf-parse
-- Authentication: JWT + bcrypt
+- - Authentication: JWT + bcrypt
 
 ## Folder Structure
 
@@ -85,8 +84,7 @@ node -e "import('bcryptjs').then(b=>console.log(b.default.hashSync('YOUR_ADMIN_P
 4. Choose exam, title, and PDF file.
 5. The backend uploads the PDF to Supabase Storage.
 6. PDF metadata is saved in PostgreSQL table `pdfs`.
-7. Text is extracted and passages are saved in PostgreSQL table `passages`.
-8. Edit passages in `/admin/passages` if needed.
+7. Add or edit passage text manually in `/admin/passages` if needed.
 
 ## Typing Result Calculation
 

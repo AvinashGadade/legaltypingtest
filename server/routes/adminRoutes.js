@@ -1,7 +1,5 @@
 import express from 'express';
 import multer from 'multer';
-import { extractPdfText } from '../utils/pdfExtractor.js';
-import { splitIntoPassages } from '../utils/passageSplitter.js';
 import { comparePassword, signToken, tokenFromRequest, verifyToken } from '../utils/auth.js';
 import { makeStoragePath, removePdfObject, uploadPdfBuffer } from '../utils/storage.js';
 
@@ -69,23 +67,10 @@ export function adminRoutes(store) {
         fileSize: req.file.size
       });
 
-      const extractedText = await extractPdfText(req.file.buffer);
-      const manualText = String(req.body.manualText || '').trim();
-      const extractedPassages = splitIntoPassages(extractedText);
-      const passages = (extractedPassages.length ? extractedPassages : splitIntoPassages(manualText)).map((content, index) => ({
-        pdfId,
-        examId,
-        passageNumber: index + 1,
-        title: `Passage ${index + 1}`,
-        content
-      }));
-      await store.createPassages(passages);
       res.json({
         id: pdfId,
         storagePath,
-        passagesCreated: passages.length,
-        extractedTextLength: extractedText.trim().length,
-        warning: passages.length === 0 ? 'PDF uploaded, but no selectable passages were extracted. Add passages manually from Manage Passages.' : ''
+        message: 'PDF uploaded. Add or edit passage text manually from Manage Passages.'
       });
     } catch (error) {
       res.status(500).json({ error: error.message });

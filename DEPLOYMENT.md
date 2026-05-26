@@ -118,6 +118,6 @@ In Vercel:
 - Student users are saved in PostgreSQL table `users`.
 - Admin uploaded PDF metadata is saved in PostgreSQL table `pdfs`.
 - PDF files are saved in Supabase Storage bucket `passage-pdfs`.
-- Extracted/manual passages are saved in PostgreSQL table `passages`.
+- Manual passages are saved in PostgreSQL table `passages`.
 - Student results/history are saved in PostgreSQL table `test_results`.
 - PDF downloads use signed Supabase Storage URLs.
