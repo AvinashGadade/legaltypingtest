@@ -445,6 +445,37 @@ export class PostgresStore {
 
   async deletePassage(id) { await this.q('DELETE FROM passages WHERE id = $1', [id]); }
 
+  async listStudents({ search = '', limit = 100, offset = 0 } = {}) {
+    const q = `%${search}%`;
+    const { rows } = await this.q(`
+      SELECT id, name, email, subscription_status, subscription_type, paid_at, created_at,
+             (SELECT COUNT(*)::int FROM test_results WHERE user_id = users.id) AS test_count
+      FROM users
+      WHERE role = 'student'
+        AND ($1 = '%%' OR name ILIKE $1 OR email ILIKE $1)
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [q, limit, offset]);
+    return rows;
+  }
+
+  async setStudentSubscription(studentId, status) {
+    // status: 'active' | 'free'
+    if (status === 'active') {
+      const { rows } = await this.q(
+        "UPDATE users SET subscription_status = 'active', subscription_type = 'manual', paid_at = now() WHERE id = $1 AND role = 'student' RETURNING id, name, email, subscription_status, subscription_type, paid_at",
+        [studentId]
+      );
+      return rows[0];
+    } else {
+      const { rows } = await this.q(
+        "UPDATE users SET subscription_status = 'free', subscription_type = NULL, paid_at = NULL WHERE id = $1 AND role = 'student' RETURNING id, name, email, subscription_status, subscription_type, paid_at",
+        [studentId]
+      );
+      return rows[0];
+    }
+  }
+
   async activateLifetimeSubscription(studentId) {
     const { rows } = await this.q(
       "UPDATE users SET subscription_status = 'active', subscription_type = 'lifetime', paid_at = now() WHERE id = $1 RETURNING id, name, email, subscription_status, subscription_type, paid_at",

@@ -86,6 +86,21 @@ export function adminRoutes(store) {
     res.json({ ok: true });
   });
 
+  /* ── Student management ── */
+  router.get('/students', async (req, res) => {
+    const search = String(req.query.search || '').trim();
+    const students = await store.listStudents({ search });
+    res.json({ students });
+  });
+
+  router.post('/students/:id/subscription', async (req, res) => {
+    const status = String(req.body.status || '').trim();
+    if (!['active', 'free'].includes(status)) return res.status(400).json({ error: 'status must be active or free' });
+    const student = await store.setStudentSubscription(req.params.id, status);
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+    res.json({ ok: true, student });
+  });
+
   router.get('/passages', async (req, res) => res.json({ passages: await store.adminPassages() }));
 
   router.post('/passages', async (req, res) => {

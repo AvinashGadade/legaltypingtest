@@ -8,6 +8,7 @@ import AdminLogin from './pages/AdminLogin.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import AdminUpload from './pages/AdminUpload.jsx';
 import AdminPassages from './pages/AdminPassages.jsx';
+import AdminStudents from './pages/AdminStudents.jsx';
 import StudentLogin from './pages/StudentLogin.jsx';
 import StudentRegister from './pages/StudentRegister.jsx';
 import StudentHistory from './pages/StudentHistory.jsx';
@@ -36,6 +37,7 @@ export default function App() {
       <Route path="/admin/dashboard" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
       <Route path="/admin/upload" element={<ProtectedAdminRoute><AdminUpload /></ProtectedAdminRoute>} />
       <Route path="/admin/passages" element={<ProtectedAdminRoute><AdminPassages /></ProtectedAdminRoute>} />
+      <Route path="/admin/students" element={<ProtectedAdminRoute><AdminStudents /></ProtectedAdminRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
