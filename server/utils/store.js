@@ -191,6 +191,20 @@ export class PostgresStore {
     await this.pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS paid_at timestamptz");
     await this.pool.query("ALTER TABLE passages ADD COLUMN IF NOT EXISTS is_free boolean DEFAULT false");
 
+    // Google OAuth & password reset additions
+    await this.pool.query("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL");
+    await this.pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id text UNIQUE");
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token text NOT NULL UNIQUE,
+        expires_at timestamptz NOT NULL,
+        used boolean NOT NULL DEFAULT false,
+        created_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await this.pool.query('CREATE INDEX IF NOT EXISTS idx_prt_token ON password_reset_tokens(token)');
 
     await this.pool.query(
       'INSERT INTO exams (name) SELECT $1 WHERE NOT EXISTS (SELECT 1 FROM exams WHERE name = $1)',
@@ -270,8 +284,49 @@ export class PostgresStore {
   }
 
   async getStudentByEmail(email) {
-    const { rows } = await this.q("SELECT id, name, email, password_hash, subscription_status, subscription_type, paid_at FROM users WHERE email = $1 AND role = 'student'", [email]);
+    const { rows } = await this.q("SELECT id, name, email, password_hash, google_id, subscription_status, subscription_type, paid_at FROM users WHERE email = $1 AND role = 'student'", [email]);
     return rows[0];
+  }
+
+  async getStudentByGoogleId(googleId) {
+    const { rows } = await this.q("SELECT id, name, email, subscription_status, subscription_type, paid_at FROM users WHERE google_id = $1 AND role = 'student'", [googleId]);
+    return rows[0];
+  }
+
+  async createGoogleStudent({ name, email, googleId }) {
+    const { rows } = await this.q(
+      "INSERT INTO users (name, email, google_id, role) VALUES ($1, $2, $3, 'student') RETURNING id, name, email, subscription_status, subscription_type, paid_at",
+      [name, email, googleId]
+    );
+    return rows[0];
+  }
+
+  async linkGoogleId(userId, googleId) {
+    await this.q('UPDATE users SET google_id = $1 WHERE id = $2', [googleId, userId]);
+  }
+
+  async createPasswordResetToken(userId) {
+    // Expire old tokens first
+    await this.q('UPDATE password_reset_tokens SET used = true WHERE user_id = $1 AND used = false', [userId]);
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2, '0')).join('');
+    const { rows } = await this.q(
+      "INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, now() + interval '1 hour') RETURNING token",
+      [userId, token]
+    );
+    return rows[0].token;
+  }
+
+  async getValidResetToken(token) {
+    const { rows } = await this.q(
+      "SELECT prt.id, prt.user_id, u.name, u.email FROM password_reset_tokens prt JOIN users u ON u.id = prt.user_id WHERE prt.token = $1 AND prt.used = false AND prt.expires_at > now()",
+      [token]
+    );
+    return rows[0];
+  }
+
+  async consumeResetToken(tokenId, userId, newHash) {
+    await this.q('UPDATE password_reset_tokens SET used = true WHERE id = $1', [tokenId]);
+    await this.q('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, userId]);
   }
 
   async getStudentById(id) {

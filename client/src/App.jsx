@@ -12,6 +12,8 @@ import StudentLogin from './pages/StudentLogin.jsx';
 import StudentRegister from './pages/StudentRegister.jsx';
 import StudentHistory from './pages/StudentHistory.jsx';
 import Subscription from './pages/Subscription.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 import ProtectedStudentRoute from './components/ProtectedStudentRoute.jsx';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute.jsx';
 
@@ -26,6 +28,8 @@ export default function App() {
       <Route path="/result" element={<Result />} />
       <Route path="/student/login" element={<StudentLogin />} />
       <Route path="/student/register" element={<StudentRegister />} />
+      <Route path="/student/forgot-password" element={<ForgotPassword />} />
+      <Route path="/student/reset-password" element={<ResetPassword />} />
       <Route path="/student/history" element={<ProtectedStudentRoute><StudentHistory /></ProtectedStudentRoute>} />
       <Route path="/subscription" element={<ProtectedStudentRoute><Subscription /></ProtectedStudentRoute>} />
       <Route path="/admin/login" element={<AdminLogin />} />

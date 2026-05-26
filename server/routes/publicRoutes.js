@@ -1,7 +1,11 @@
 import express from 'express';
+import { OAuth2Client } from 'google-auth-library';
 import { calculateTypingResult } from '../utils/typingCalculator.js';
 import { signedPdfUrl } from '../utils/storage.js';
 import { comparePassword, hashPassword, signToken, tokenFromRequest, verifyToken } from '../utils/auth.js';
+import { sendWelcomeEmail, sendLoginEmail, sendPasswordResetEmail } from '../utils/email.js';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 function hasActiveSubscription(student) {
   return student?.subscription_status === 'active';
@@ -39,6 +43,8 @@ export function publicRoutes(store) {
     try {
       const student = await store.createStudent({ name, email, passwordHash: hashPassword(password) });
       const token = signToken({ sub: student.id, role: 'student' });
+      // Send welcome email (non-blocking — don't fail if email fails)
+      sendWelcomeEmail(email, name).catch(() => {});
       return res.json({ token, student });
     } catch {
       return res.status(400).json({ error: 'Email is already registered' });
@@ -49,11 +55,87 @@ export function publicRoutes(store) {
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
     const student = await store.getStudentByEmail(email);
-    if (!student || !comparePassword(password, student.password_hash)) {
+    if (!student || !student.password_hash || !comparePassword(password, student.password_hash)) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     const token = signToken({ sub: student.id, role: 'student' });
+    sendLoginEmail(student.email, student.name).catch(() => {});
     return res.json({ token, student: { id: student.id, name: student.name, email: student.email, subscription_status: student.subscription_status, subscription_type: student.subscription_type, paid_at: student.paid_at } });
+  });
+
+  /* ── Google OAuth ── */
+  router.post('/students/google', async (req, res) => {
+    const credential = String(req.body.credential || '');
+    if (!credential) return res.status(400).json({ error: 'Google credential is required' });
+    if (!process.env.GOOGLE_CLIENT_ID) return res.status(501).json({ error: 'Google login is not configured on this server' });
+
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: process.env.GOOGLE_CLIENT_ID });
+      payload = ticket.getPayload();
+    } catch {
+      return res.status(401).json({ error: 'Invalid Google credential — please try again' });
+    }
+
+    const { sub: googleId, email, name, email_verified } = payload;
+    if (!email_verified) return res.status(400).json({ error: 'Google account email is not verified' });
+
+    // Find by google_id first, then by email
+    let student = await store.getStudentByGoogleId(googleId);
+    let isNew = false;
+
+    if (!student) {
+      const existing = await store.getStudentByEmail(email);
+      if (existing) {
+        // Existing manual account — link Google to it
+        await store.linkGoogleId(existing.id, googleId);
+        student = await store.getStudentById(existing.id);
+        sendLoginEmail(email, existing.name).catch(() => {});
+      } else {
+        // Brand-new user via Google
+        student = await store.createGoogleStudent({ name, email, googleId });
+        isNew = true;
+        sendWelcomeEmail(email, name).catch(() => {});
+      }
+    } else {
+      sendLoginEmail(email, student.name).catch(() => {});
+    }
+
+    const token = signToken({ sub: student.id, role: 'student' });
+    return res.json({ token, student: { id: student.id, name: student.name, email: student.email, subscription_status: student.subscription_status, subscription_type: student.subscription_type, paid_at: student.paid_at }, isNew });
+  });
+
+  /* ── Forgot password ── */
+  router.post('/students/forgot-password', async (req, res) => {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    const student = await store.getStudentByEmail(email);
+    // Always respond OK to prevent email enumeration
+    if (!student) return res.json({ ok: true });
+
+    try {
+      const token = await store.createPasswordResetToken(student.id);
+      const frontendUrl = process.env.FRONTEND_URL || 'https://www.legaltypingtest.online';
+      const resetLink = `${frontendUrl}/student/reset-password?token=${token}`;
+      await sendPasswordResetEmail(email, student.name, resetLink);
+    } catch (err) {
+      console.error('[forgot-password]', err.message);
+    }
+    return res.json({ ok: true });
+  });
+
+  /* ── Reset password ── */
+  router.post('/students/reset-password', async (req, res) => {
+    const token = String(req.body.token || '').trim();
+    const newPassword = String(req.body.password || '');
+    if (!token || newPassword.length < 4) return res.status(400).json({ error: 'Valid token and new password (min 4 chars) are required' });
+
+    const record = await store.getValidResetToken(token);
+    if (!record) return res.status(400).json({ error: 'This reset link has expired or already been used. Please request a new one.' });
+
+    await store.consumeResetToken(record.id, record.user_id, hashPassword(newPassword));
+    return res.json({ ok: true });
   });
 
   router.post('/students/logout', (req, res) => res.json({ ok: true }));
