@@ -1,4 +1,7 @@
+import dns from 'dns';
 import pg from 'pg';
+
+dns.setDefaultResultOrder('ipv4first');
 
 const { Pool } = pg;
 
@@ -60,7 +63,12 @@ function encodeDatabasePassword(raw) {
 export class PostgresStore {
   constructor() {
     this.pool = new Pool({ connectionString: databaseUrl(), ssl: { rejectUnauthorized: false } });
-    this.ready = this.ensureSchemaAndSeed();
+    this.ready = this.ensureSchemaAndSeed().catch((error) => {
+      if (error?.code === 'ENETUNREACH' && String(error.address || '').includes(':')) {
+        throw new Error('Cannot reach Supabase direct database over IPv6 from Render. Use the Supabase Transaction Pooler connection string in DATABASE_URL instead of the direct db.*.supabase.co URI.');
+      }
+      throw error;
+    });
   }
 
   async ensureSchemaAndSeed() {
