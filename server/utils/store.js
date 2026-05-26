@@ -126,6 +126,8 @@ export class PostgresStore {
       'INSERT INTO exams (name) SELECT $1 WHERE NOT EXISTS (SELECT 1 FROM exams WHERE name = $1)',
       [DEFAULT_EXAM]
     );
+
+    await this.pool.query("DELETE FROM pdfs WHERE storage_path NOT LIKE 'pdfs/%'");
   }
 
   async q(sql, params = []) {
