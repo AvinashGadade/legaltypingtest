@@ -5,22 +5,28 @@ const { Pool } = pg;
 const DEFAULT_EXAM = 'Bombay High Court Clerk Typing';
 
 function databaseUrl() {
-  const raw = process.env.DATABASE_URL;
+  const raw = cleanDatabaseUrl(process.env.DATABASE_URL);
   if (!raw) throw new Error('DATABASE_URL is required. This backend is configured for online PostgreSQL only.');
 
-  try {
-    new URL(raw);
-    return raw;
-  } catch {
-    const fixed = encodeDatabasePassword(raw);
+  const encoded = encodeDatabasePassword(raw);
+  const candidates = encoded === raw ? [raw] : [encoded, raw];
+  for (const candidate of candidates) {
     try {
-      new URL(fixed);
-      console.warn('DATABASE_URL contained URL-special characters in the password. Encoded password automatically. Prefer fixing it in Render env.');
-      return fixed;
+      new URL(candidate);
+      return candidate;
     } catch {
-      throw new Error('DATABASE_URL is invalid. Use the Supabase PostgreSQL connection string and URL-encode special password characters, for example # must be %23.');
+      // Try the next candidate.
     }
   }
+
+  throw new Error('DATABASE_URL is invalid. In Render, set only the PostgreSQL URL value, not DATABASE_URL=..., and URL-encode special password characters such as # as %23.');
+}
+
+function cleanDatabaseUrl(value) {
+  let raw = String(value || '').trim();
+  raw = raw.replace(/^DATABASE_URL\s*=\s*/i, '').trim();
+  raw = raw.replace(/^['"]|['"]$/g, '').trim();
+  return raw;
 }
 
 function encodeDatabasePassword(raw) {
