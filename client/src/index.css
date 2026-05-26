@@ -164,6 +164,24 @@ body {
   border-bottom: 2px solid #ef4444;
 }
 
+/* ── Live Typing: LIGHT mode passage word classes ── */
+.word-done-correct-light  { color: #16a34a; font-weight: 600; }
+.word-done-error-light    { color: #dc2626; background: #fff1f2; border-radius: 3px; padding: 0 3px; font-weight: 600; }
+.word-current-container-light {
+  background: #eff6ff;
+  border-bottom: 2px solid #4f46e5;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+.word-pending-light { color: #9ca3af; }
+
+/* char classes in light mode */
+.char-correct-light  { color: #16a34a; }
+.char-error-light    { color: #ef4444; text-decoration: underline; }
+.char-cursor-light   { background: #4f46e5; color: #ffffff; border-radius: 2px; animation: blink-cursor 1s step-end infinite; }
+.char-pending-light  { color: #d1d5db; }
+.char-extra-light    { color: #ef4444; border-bottom: 2px solid #ef4444; }
+
 /* ── Timer states ────────────────────────────────── */
 .timer-safe   { color: #f1f5f9; }
 .timer-warn   { color: #fbbf24; }

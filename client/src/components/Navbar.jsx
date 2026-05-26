@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, LogOut, Upload, FileText, Keyboard,
-  Download, UserPlus, History, CreditCard, Menu, X, Scale
+  Download, UserPlus, History, CreditCard, Menu, X, Scale, ShieldCheck
 } from 'lucide-react';
 
 export default function Navbar({ admin = false }) {
@@ -90,6 +90,14 @@ export default function Navbar({ admin = false }) {
                   <span className="max-w-[100px] truncate">{studentName}</span>
                 </button>
               )}
+              {/* Admin login — subtle, always accessible */}
+              <Link
+                to="/admin/login"
+                className="ml-2 flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-medium text-white/40 transition-all hover:border-white/20 hover:text-white/70"
+                title="Admin Login"
+              >
+                <ShieldCheck size={12} /> Admin
+              </Link>
             </>
           )}
 
@@ -145,6 +153,7 @@ export default function Navbar({ admin = false }) {
                     <NavLink to="/student/register" icon={UserPlus}>Register</NavLink>
                   </>
                 )}
+                <NavLink to="/admin/login" icon={ShieldCheck}>Admin Login</NavLink>
               </>
             )}
             {admin && (

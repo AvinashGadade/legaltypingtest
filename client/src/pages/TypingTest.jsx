@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Download, Maximize, Minimize, Settings, X } from 'lucide-react';
+import { Download, Maximize, Minimize, Settings, Sun, Moon, X } from 'lucide-react';
 import { formatTime } from '../utils/formatTime.js';
 import { API_BASE_URL as API } from '../utils/api.js';
 
 /* ─────────────────────────────────────────────────────────────
    PassageDisplay — live word-by-word (and char-by-char) view
+   Supports dark and light themes via `dark` prop
    ───────────────────────────────────────────────────────────── */
-function PassageDisplay({ originalText, typedText, fontSize }) {
+function PassageDisplay({ originalText, typedText, fontSize, dark }) {
   const currentRef = useRef(null);
 
-  /* Tokenize original text, keeping whitespace tokens intact */
   const tokens = useMemo(() => {
     const parts = originalText.split(/(\s+)/g);
     const result = [];
@@ -21,13 +21,11 @@ function PassageDisplay({ originalText, typedText, fontSize }) {
     return result;
   }, [originalText]);
 
-  /* Derive word/completion state from typedText */
   const typedWords       = useMemo(() => typedText.split(/\s+/).filter(Boolean), [typedText]);
   const hasTrailingSpace = typedText.length > 0 && /\s$/.test(typedText);
   const completedCount   = hasTrailingSpace ? typedWords.length : Math.max(0, typedWords.length - 1);
   const currentTyped     = hasTrailingSpace ? '' : (typedWords[typedWords.length - 1] || '');
 
-  /* Auto-scroll current word into view when the completed count changes */
   useEffect(() => {
     currentRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [completedCount]);
@@ -35,18 +33,29 @@ function PassageDisplay({ originalText, typedText, fontSize }) {
   let wordIdx = 0;
   const fontClass = fontSize === 'small' ? 'text-sm' : fontSize === 'large' ? 'text-xl' : 'text-base';
 
+  /* CSS class helpers — switch between dark and light palettes */
+  const cls = {
+    correct:  dark ? 'word-done-correct'        : 'word-done-correct-light',
+    error:    dark ? 'word-done-error'           : 'word-done-error-light',
+    current:  dark ? 'word-current-container'   : 'word-current-container-light',
+    pending:  dark ? 'word-pending'              : 'word-pending-light',
+    cCorrect: dark ? 'char-correct'              : 'char-correct-light',
+    cError:   dark ? 'char-error'                : 'char-error-light',
+    cCursor:  dark ? 'char-cursor'               : 'char-cursor-light',
+    cPending: dark ? 'char-pending'              : 'char-pending-light',
+    cExtra:   dark ? 'char-extra'                : 'char-extra-light',
+  };
+
   return (
     <div
       className={`max-h-56 overflow-y-auto whitespace-pre-wrap leading-9 select-none ${fontClass}`}
       style={{ fontFamily: "'Courier New', Courier, monospace" }}
     >
       {tokens.map((tok, i) => {
-        /* Whitespace — render as-is to preserve paragraph structure */
         if (tok.type === 'space') return <span key={i}>{tok.value}</span>;
 
         const wi = wordIdx++;
 
-        /* ── Completed words ── */
         if (wi < completedCount) {
           const typed   = typedWords[wi] || '';
           const correct = typed === tok.value;
@@ -54,49 +63,33 @@ function PassageDisplay({ originalText, typedText, fontSize }) {
             <span
               key={i}
               title={correct ? '' : `You typed: "${typed}"`}
-              className={correct ? 'word-done-correct' : 'word-done-error'}
+              className={correct ? cls.correct : cls.error}
             >
               {tok.value}
             </span>
           );
         }
 
-        /* ── Current word (character level) ── */
         if (wi === completedCount) {
           const chars = tok.value.split('');
           return (
-            <span key={i} ref={currentRef} className="word-current-container">
+            <span key={i} ref={currentRef} className={cls.current}>
               {chars.map((ch, ci) => {
-                if (ci < currentTyped.length) {
-                  return (
-                    <span key={ci} className={currentTyped[ci] === ch ? 'char-correct' : 'char-error'}>
-                      {ch}
-                    </span>
-                  );
-                }
-                if (ci === currentTyped.length) {
-                  return <span key={ci} className="char-cursor">{ch}</span>;
-                }
-                return <span key={ci} className="char-pending">{ch}</span>;
+                if (ci < currentTyped.length)
+                  return <span key={ci} className={currentTyped[ci] === ch ? cls.cCorrect : cls.cError}>{ch}</span>;
+                if (ci === currentTyped.length)
+                  return <span key={ci} className={cls.cCursor}>{ch}</span>;
+                return <span key={ci} className={cls.cPending}>{ch}</span>;
               })}
-              {/* Extra characters typed beyond the word */}
               {currentTyped.length > chars.length && (
-                <span className="char-extra">
-                  {currentTyped.slice(chars.length)}
-                </span>
+                <span className={cls.cExtra}>{currentTyped.slice(chars.length)}</span>
               )}
             </span>
           );
         }
 
-        /* ── Pending words ── */
-        return <span key={i} className="word-pending">{tok.value}</span>;
+        return <span key={i} className={cls.pending}>{tok.value}</span>;
       })}
-
-      {/* Cursor at end when passage is fully typed */}
-      {!hasTrailingSpace && completedCount >= tokens.filter(t => t.type === 'word').length && (
-        <span className="char-cursor">|</span>
-      )}
     </div>
   );
 }
@@ -105,10 +98,11 @@ function PassageDisplay({ originalText, typedText, fontSize }) {
    Main TypingTest page
    ───────────────────────────────────────────────────────────── */
 export default function TypingTest() {
-  const { state }   = useLocation();
-  const navigate    = useNavigate();
-  const passage     = state?.passage;
-  const textareaRef = useRef(null);
+  const { state }    = useLocation();
+  const navigate     = useNavigate();
+  const passage      = state?.passage;
+  const mode         = state?.mode || 'onscreen'; // 'onscreen' | 'paper'
+  const textareaRef  = useRef(null);
   const submittedRef = useRef(false);
 
   const [typedText,    setTypedText]    = useState('');
@@ -122,23 +116,20 @@ export default function TypingTest() {
   const [submitting,   setSubmitting]   = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  /* Guard: no passage → back to selector */
-  useEffect(() => { if (!passage) navigate('/practice'); }, [passage, navigate]);
+  // ── Theme: dark = typing focused, light = regular ──
+  const [dark, setDark] = useState(true);
 
-  /* Auto-focus textarea */
+  useEffect(() => { if (!passage) navigate('/practice'); }, [passage, navigate]);
   useEffect(() => { textareaRef.current?.focus(); }, []);
 
-  /* Countdown timer */
   useEffect(() => {
     if (!started || submittedRef.current) return;
     const id = setInterval(() => setRemaining((v) => Math.max(0, v - 1)), 1000);
     return () => clearInterval(id);
   }, [started]);
 
-  /* Auto-submit when timer hits 0 */
   useEffect(() => { if (started && remaining === 0) handleSubmit(); }, [remaining, started]);
 
-  /* Warn before navigating away mid-test */
   useEffect(() => {
     const guard = (e) => {
       if (started && !submittedRef.current) { e.preventDefault(); e.returnValue = ''; }
@@ -153,8 +144,8 @@ export default function TypingTest() {
 
   const { liveAccuracy, wordsTyped } = useMemo(() => {
     if (!typedText || !passage) return { liveAccuracy: 100, wordsTyped: 0 };
-    const tw   = typedText.split(/\s+/).filter(Boolean);
-    const ow   = passage.content.split(/\s+/).filter(Boolean);
+    const tw    = typedText.split(/\s+/).filter(Boolean);
+    const ow    = passage.content.split(/\s+/).filter(Boolean);
     const trail = /\s$/.test(typedText);
     const done  = trail ? tw.length : Math.max(0, tw.length - 1);
     let ok = 0;
@@ -172,12 +163,48 @@ export default function TypingTest() {
 
   const progressPct = totalWords > 0 ? Math.min(100, (wordsTyped / totalWords) * 100) : 0;
 
-  /* Timer colour */
   const timerClass = remaining < 60
     ? 'timer-danger'
     : remaining < 120
       ? 'timer-warn'
-      : 'timer-safe';
+      : dark ? 'timer-safe' : 'text-slate-900';
+
+  /* ── Theme-based Tailwind classes ── */
+  const t = dark ? {
+    page:       'bg-slate-950 text-white',
+    header:     'bg-slate-900 border-slate-800',
+    headerText: 'text-slate-500',
+    statsBar:   'bg-slate-900/60 border-slate-800',
+    dimText:    'text-slate-500',
+    sep:        'bg-slate-700',
+    ctrl:       'bg-slate-800 text-slate-300 hover:bg-slate-700',
+    card:       'bg-slate-900 border-slate-700',
+    cardLabel:  'text-slate-500',
+    progBg:     'bg-slate-800',
+    tareaBase:  'bg-slate-950 text-slate-100 placeholder-slate-700 focus:ring-indigo-500/50',
+    cancelBtn:  'border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-200',
+    modal:      'bg-slate-900 border-slate-700',
+    mLabel:     'text-slate-300',
+    mInput:     'border-slate-700 bg-slate-800 text-white focus:border-indigo-500',
+    mToggleBg:  'bg-slate-800 hover:bg-slate-700/70',
+  } : {
+    page:       'bg-slate-50 text-slate-900',
+    header:     'bg-white border-slate-200',
+    headerText: 'text-slate-400',
+    statsBar:   'bg-white border-slate-200',
+    dimText:    'text-slate-500',
+    sep:        'bg-slate-200',
+    ctrl:       'bg-slate-100 text-slate-600 hover:bg-slate-200',
+    card:       'bg-white border-slate-200',
+    cardLabel:  'text-slate-400',
+    progBg:     'bg-slate-200',
+    tareaBase:  'bg-white text-slate-900 placeholder-slate-400 border border-slate-200 focus:ring-indigo-500/30',
+    cancelBtn:  'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700',
+    modal:      'bg-white border-slate-200',
+    mLabel:     'text-slate-700',
+    mInput:     'border-slate-200 bg-slate-50 text-slate-900 focus:border-indigo-500',
+    mToggleBg:  'bg-slate-50 hover:bg-slate-100',
+  };
 
   /* ── Submit ── */
   const handleSubmit = async () => {
@@ -196,14 +223,14 @@ export default function TypingTest() {
         method:  'POST',
         headers,
         body:    JSON.stringify({
-          examId:          passage.exam_id,
-          pdfId:           passage.pdf_id,
-          passageId:       passage.id,
-          originalText:    passage.content,
+          examId:         passage.exam_id,
+          pdfId:          passage.pdf_id,
+          passageId:      passage.id,
+          originalText:   passage.content,
           typedText,
           durationSeconds,
-          backspaceCount:  backspaces,
-          keystrokes:      typedText.length
+          backspaceCount: backspaces,
+          keystrokes:     typedText.length
         })
       });
       const data = await res.json();
@@ -219,14 +246,13 @@ export default function TypingTest() {
       }
 
       if (!data.id) {
-        /* Anonymous preview — pass all result data in state */
         const r = data.result;
         return navigate('/result/preview', {
           state: {
             result: {
               ...r,
-              exam_name:   passage.exam_name,
-              pdf_title:   passage.pdf_title,
+              exam_name: passage.exam_name,
+              pdf_title: passage.pdf_title,
               passage_number: passage.passage_number,
               original_text:  passage.content,
               typed_text:     typedText,
@@ -282,25 +308,36 @@ export default function TypingTest() {
 
   if (!passage) return null;
 
-  const taFontClass = fontSize === 'small' ? 'text-sm' : fontSize === 'large' ? 'text-xl' : 'text-base';
+  const isPaper   = mode === 'paper';
+  const taFontCls = fontSize === 'small' ? 'text-sm' : fontSize === 'large' ? 'text-xl' : 'text-base';
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className={`min-h-screen ${t.page}`} style={{ fontFamily: 'Inter, sans-serif' }}>
 
-      {/* ── Top Header Bar ──────────────────────────────────── */}
-      <header className="border-b border-slate-800 bg-slate-900 px-4 py-3">
+      {/* ── Header ──────────────────────────────────────────── */}
+      <header className={`border-b ${t.header} px-4 py-3`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-          {/* Exam info */}
+
+          {/* Exam info + mode badge */}
           <div className="min-w-0">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Typing Test</p>
-            <h1 className="truncate text-sm font-bold text-white md:text-base">
+            <div className="flex items-center gap-2">
+              <p className={`text-xs font-medium uppercase tracking-wider ${t.headerText}`}>Typing Test</p>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                isPaper
+                  ? 'bg-amber-100 text-amber-700'
+                  : dark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-700'
+              }`}>
+                {isPaper ? '📄 Paper Mode' : '🖥️ On-Screen Mode'}
+              </span>
+            </div>
+            <h1 className="truncate text-sm font-bold md:text-base">
               {passage.exam_name} — Passage {passage.passage_number}
             </h1>
           </div>
 
           {/* Big Timer */}
           <div className="text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Time Left</p>
+            <p className={`text-[10px] font-semibold uppercase tracking-widest ${t.headerText}`}>Time Left</p>
             <p className={`font-black tabular-nums text-3xl md:text-4xl ${timerClass}`}>
               {formatTime(remaining)}
             </p>
@@ -308,21 +345,31 @@ export default function TypingTest() {
 
           {/* Controls */}
           <div className="flex items-center gap-1.5">
+            {/* Light / Dark toggle */}
+            <button
+              onClick={() => setDark((v) => !v)}
+              title={dark ? 'Switch to Light mode' : 'Switch to Dark mode'}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${t.ctrl}`}
+            >
+              {dark ? <Sun size={13} /> : <Moon size={13} />}
+              <span className="hidden sm:inline">{dark ? 'Light' : 'Dark'}</span>
+            </button>
+
             <a
               href={`${API}/pdfs/${passage.pdf_id}/download`}
-              className="flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-700"
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${t.ctrl}`}
             >
               <Download size={13} /><span className="hidden sm:inline">PDF</span>
             </a>
             <button
               onClick={() => setSettingsOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-700"
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${t.ctrl}`}
             >
               <Settings size={13} /><span className="hidden sm:inline">Settings</span>
             </button>
             <button
               onClick={toggleFullscreen}
-              className="flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-700"
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${t.ctrl}`}
             >
               {isFullscreen ? <Minimize size={13} /> : <Maximize size={13} />}
             </button>
@@ -331,48 +378,48 @@ export default function TypingTest() {
       </header>
 
       {/* ── Live Stats Bar ───────────────────────────────────── */}
-      <div className="border-b border-slate-800 bg-slate-900/50 px-4 py-2">
+      <div className={`border-b ${t.statsBar} px-4 py-2`}>
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-1 text-sm">
 
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 text-xs">WPM</span>
-            <span className="tabular-nums font-black text-cyan-400 text-lg">{liveWpm}</span>
+            <span className={`text-xs ${t.dimText}`}>WPM</span>
+            <span className="tabular-nums font-black text-cyan-500 text-lg">{liveWpm}</span>
           </div>
 
-          <div className="hidden h-4 w-px bg-slate-700 sm:block" />
+          <div className={`hidden h-4 w-px sm:block ${t.sep}`} />
 
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 text-xs">Accuracy</span>
+            <span className={`text-xs ${t.dimText}`}>Accuracy</span>
             <span className={`tabular-nums font-black text-lg ${
-              liveAccuracy >= 95 ? 'text-emerald-400' :
-              liveAccuracy >= 85 ? 'text-amber-400' : 'text-rose-400'
+              liveAccuracy >= 95 ? 'text-emerald-500' :
+              liveAccuracy >= 85 ? 'text-amber-500' : 'text-rose-500'
             }`}>{liveAccuracy}%</span>
           </div>
 
-          <div className="hidden h-4 w-px bg-slate-700 sm:block" />
+          <div className={`hidden h-4 w-px sm:block ${t.sep}`} />
 
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 text-xs">Words</span>
-            <span className="tabular-nums font-bold text-white">{wordsTyped}</span>
-            <span className="text-slate-600 text-xs">/ {totalWords}</span>
+            <span className={`text-xs ${t.dimText}`}>Words</span>
+            <span className="tabular-nums font-bold">{wordsTyped}</span>
+            <span className={`text-xs ${t.dimText}`}>/ {totalWords}</span>
           </div>
 
-          <div className="hidden h-4 w-px bg-slate-700 sm:block" />
+          <div className={`hidden h-4 w-px sm:block ${t.sep}`} />
 
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 text-xs">Backspaces</span>
-            <span className="tabular-nums font-bold text-amber-400">{backspaces}</span>
+            <span className={`text-xs ${t.dimText}`}>Backspaces</span>
+            <span className="tabular-nums font-bold text-amber-500">{backspaces}</span>
           </div>
 
           {/* Backspace toggle */}
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-slate-500 text-xs">Backspace</span>
+            <span className={`text-xs ${t.dimText}`}>Backspace</span>
             <button
               onClick={() => setAllowBksp((v) => !v)}
               className={`rounded px-2 py-0.5 text-xs font-bold transition-colors ${
                 allowBksp
-                  ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
-                  : 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30'
+                  ? 'bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25'
+                  : 'bg-rose-500/15 text-rose-500 hover:bg-rose-500/25'
               }`}
             >
               {allowBksp ? 'ON' : 'OFF'}
@@ -385,65 +432,90 @@ export default function TypingTest() {
       <main className="mx-auto max-w-6xl px-4 py-5">
 
         {/* Progress bar */}
-        <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-slate-800">
+        <div className={`mb-4 h-1 w-full overflow-hidden rounded-full ${t.progBg}`}>
           <div
             className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500 transition-all duration-500"
             style={{ width: `${progressPct}%` }}
           />
         </div>
 
-        {/* ── Original Passage with Live Highlighting ── */}
-        <div className="mb-4 rounded-xl border border-slate-700 bg-slate-900 p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-              📄 Original Passage — words highlight as you type
-            </h2>
-            <div className="flex gap-3 text-[11px] text-slate-500">
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />Correct
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-2 rounded-full bg-rose-400" />Wrong
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-2 rounded-full bg-indigo-400" />Current
-              </span>
+        {/* ── ON-SCREEN MODE: Live passage highlighting ── */}
+        {!isPaper && (
+          <div className={`mb-4 rounded-xl border ${t.card} p-5`}>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className={`text-[11px] font-bold uppercase tracking-widest ${t.cardLabel}`}>
+                📄 Original Passage — words highlight as you type
+              </h2>
+              <div className={`flex gap-3 text-[11px] ${t.dimText}`}>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />Correct
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-rose-400" />Wrong
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-indigo-400" />Current
+                </span>
+              </div>
+            </div>
+            <PassageDisplay
+              originalText={passage.content}
+              typedText={typedText}
+              fontSize={fontSize}
+              dark={dark}
+            />
+          </div>
+        )}
+
+        {/* ── PAPER MODE: Reminder card ── */}
+        {isPaper && (
+          <div className="mb-4 rounded-xl border-2 border-amber-200 bg-amber-50 p-5">
+            <div className="flex items-start gap-3">
+              <span className="text-3xl">📄</span>
+              <div>
+                <h2 className="font-bold text-amber-900">Paper / Hard Copy Mode</h2>
+                <p className="mt-1 text-sm text-amber-800">
+                  The passage is intentionally hidden. Type from your <strong>printed paper</strong> placed
+                  next to your keyboard — exactly as in the real BHC exam hall.
+                </p>
+                <p className="mt-2 text-xs text-amber-700">
+                  Don't have the paper yet?{' '}
+                  <a
+                    href={`${API}/pdfs/${passage.pdf_id}/download`}
+                    className="font-bold underline hover:text-amber-900"
+                  >
+                    Download the PDF
+                  </a>{' '}
+                  and print it first.
+                </p>
+              </div>
             </div>
           </div>
-          <PassageDisplay
-            originalText={passage.content}
-            typedText={typedText}
-            fontSize={fontSize}
-          />
-        </div>
+        )}
 
-        {/* ── Typing Textarea ── */}
-        <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+        {/* ── Typing Area ── */}
+        <div className={`rounded-xl border ${t.card} p-4`}>
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+            <p className={`text-[11px] font-bold uppercase tracking-widest ${t.cardLabel}`}>
               ⌨️ Type here
             </p>
             {!started && (
-              <p className="text-[11px] font-medium text-amber-400 animate-pulse">
+              <p className="text-[11px] font-medium text-amber-500 animate-pulse">
                 Timer starts on first keystroke
               </p>
             )}
             {started && (
-              <p className="text-[11px] text-slate-600">
-                {typedText.length} characters
-              </p>
+              <p className={`text-[11px] ${t.dimText}`}>{typedText.length} chars</p>
             )}
           </div>
           <textarea
             ref={textareaRef}
             className={`
-              w-full resize-none rounded-lg bg-slate-950 p-4 text-slate-100
-              placeholder-slate-700 outline-none transition-all
-              focus:ring-2 focus:ring-indigo-500/50 leading-relaxed
-              ${taFontClass}
+              w-full resize-none rounded-lg p-4 outline-none transition-all
+              focus:ring-2 leading-relaxed ${taFontCls} ${t.tareaBase}
             `}
             style={{ minHeight: '180px', fontFamily: "'Courier New', Courier, monospace" }}
-            placeholder="Start typing the passage above..."
+            placeholder="Start typing the passage here…"
             value={typedText}
             spellCheck={false}
             autoComplete="off"
@@ -469,7 +541,7 @@ export default function TypingTest() {
         <div className="mt-4 flex items-center justify-between gap-3">
           <Link
             to="/practice"
-            className="flex items-center gap-2 rounded-xl border border-slate-700 px-5 py-3 text-sm font-semibold text-slate-400 transition-all hover:border-slate-600 hover:text-slate-200"
+            className={`flex items-center gap-2 rounded-xl border px-5 py-3 text-sm font-semibold transition-all ${t.cancelBtn}`}
           >
             ← Cancel
           </Link>
@@ -486,15 +558,15 @@ export default function TypingTest() {
       {/* ── Settings Modal ───────────────────────────────── */}
       {settingsOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           onClick={(e) => e.target === e.currentTarget && setSettingsOpen(false)}
         >
-          <div className="pop-in w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+          <div className={`pop-in w-full max-w-md rounded-2xl border ${t.modal} p-6 shadow-2xl`}>
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Test Settings</h2>
+              <h2 className="text-xl font-bold">Test Settings</h2>
               <button
                 onClick={() => setSettingsOpen(false)}
-                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+                className={`rounded-lg p-1.5 ${t.dimText} transition-colors hover:opacity-70`}
               >
                 <X size={18} />
               </button>
@@ -503,9 +575,9 @@ export default function TypingTest() {
             <div className="grid gap-5">
               {/* Duration */}
               <div className="grid gap-2">
-                <label className="text-sm font-semibold text-slate-300">Test Duration</label>
+                <label className={`text-sm font-semibold ${t.mLabel}`}>Test Duration</label>
                 <select
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-indigo-500"
+                  className={`w-full rounded-xl border px-4 py-3 outline-none ${t.mInput}`}
                   value={duration}
                   disabled={started}
                   onChange={(e) => {
@@ -518,16 +590,14 @@ export default function TypingTest() {
                   <option value={600}>10 minutes (standard)</option>
                   <option value={900}>15 minutes</option>
                 </select>
-                {started && (
-                  <p className="text-xs text-amber-400">Duration cannot be changed after the test starts.</p>
-                )}
+                {started && <p className="text-xs text-amber-500">Duration can't change after test starts.</p>}
               </div>
 
               {/* Font size */}
               <div className="grid gap-2">
-                <label className="text-sm font-semibold text-slate-300">Font Size</label>
+                <label className={`text-sm font-semibold ${t.mLabel}`}>Font Size</label>
                 <select
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-indigo-500"
+                  className={`w-full rounded-xl border px-4 py-3 outline-none ${t.mInput}`}
                   value={fontSize}
                   onChange={(e) => setFontSize(e.target.value)}
                 >
@@ -537,19 +607,34 @@ export default function TypingTest() {
                 </select>
               </div>
 
+              {/* Theme toggle */}
+              <div
+                className={`flex cursor-pointer items-center justify-between rounded-xl p-4 transition-colors ${t.mToggleBg}`}
+                onClick={() => setDark((v) => !v)}
+              >
+                <div>
+                  <p className="font-semibold">{dark ? '🌙 Dark Mode' : '☀️ Light Mode'}</p>
+                  <p className={`mt-0.5 text-xs ${t.dimText}`}>
+                    {dark ? 'Easier on eyes in low light' : 'Bright mode for well-lit rooms'}
+                  </p>
+                </div>
+                <div className={`toggle-track ${dark ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                  <div className={`toggle-thumb ${dark ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </div>
+              </div>
+
               {/* Backspace toggle */}
               <div
-                className="flex cursor-pointer items-center justify-between rounded-xl bg-slate-800 p-4 transition-colors hover:bg-slate-700/70"
+                className={`flex cursor-pointer items-center justify-between rounded-xl p-4 transition-colors ${t.mToggleBg}`}
                 onClick={() => setAllowBksp((v) => !v)}
               >
                 <div>
-                  <p className="font-semibold text-white">Allow Backspace</p>
-                  <p className="mt-0.5 text-xs text-slate-400">
-                    {allowBksp ? 'Backspace key is currently enabled' : 'Backspace key is currently disabled'}
+                  <p className="font-semibold">Allow Backspace</p>
+                  <p className={`mt-0.5 text-xs ${t.dimText}`}>
+                    {allowBksp ? 'Backspace key is enabled' : 'Backspace key is disabled'}
                   </p>
                 </div>
-                {/* Toggle switch */}
-                <div className={`toggle-track ${allowBksp ? 'bg-indigo-600' : 'bg-slate-600'}`}>
+                <div className={`toggle-track ${allowBksp ? 'bg-indigo-600' : 'bg-slate-500'}`}>
                   <div className={`toggle-thumb ${allowBksp ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </div>
               </div>
