@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, LogOut, Upload, FileText, Keyboard,
-  Download, UserPlus, History, CreditCard, Menu, X, Scale, ShieldCheck
+  Download, UserPlus, History, CreditCard, Menu, X, Scale, ShieldCheck, Mail
 } from 'lucide-react';
 
 export default function Navbar({ admin = false }) {
@@ -59,6 +59,7 @@ export default function Navbar({ admin = false }) {
               <NavLink to="/" icon={Home}>Home</NavLink>
               <NavLink to="/download-passages" icon={Download}>Downloads</NavLink>
               <NavLink to="/practice" icon={Keyboard}>Practice</NavLink>
+              <NavLink to="/contact" icon={Mail}>Contact</NavLink>
               {studentName && (
                 <>
                   <NavLink to="/student/history" icon={History}>History</NavLink>
@@ -135,6 +136,7 @@ export default function Navbar({ admin = false }) {
                 <NavLink to="/" icon={Home}>Home</NavLink>
                 <NavLink to="/download-passages" icon={Download}>Downloads</NavLink>
                 <NavLink to="/practice" icon={Keyboard}>Practice</NavLink>
+                <NavLink to="/contact" icon={Mail}>Contact</NavLink>
                 {studentName && (
                   <>
                     <NavLink to="/student/history" icon={History}>My History</NavLink>
