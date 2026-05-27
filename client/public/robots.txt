@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Block admin pages from indexing
+Disallow: /admin/
+Disallow: /student/history
+Disallow: /student/reset-password
+
+Sitemap: https://www.legaltypingtest.online/sitemap.xml
