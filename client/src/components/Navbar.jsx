@@ -72,15 +72,12 @@ export default function Navbar({ admin = false }) {
                 </>
               )}
               {!studentName && (
-                <>
-                  <NavLink to="/student/login" icon={null}>Login</NavLink>
-                  <Link
-                    to="/student/register"
-                    className="ml-1 flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 text-sm font-semibold text-white transition-all hover:bg-indigo-400"
-                  >
-                    <UserPlus size={15} /> Register
-                  </Link>
-                </>
+                <Link
+                  to="/student/login"
+                  className="ml-1 flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 text-sm font-semibold text-white transition-all hover:bg-indigo-400"
+                >
+                  <UserPlus size={15} /> Login / Register
+                </Link>
               )}
               {studentName && (
                 <button
@@ -150,10 +147,7 @@ export default function Navbar({ admin = false }) {
                   </>
                 )}
                 {!studentName && (
-                  <>
-                    <NavLink to="/student/login">Student Login</NavLink>
-                    <NavLink to="/student/register" icon={UserPlus}>Register</NavLink>
-                  </>
+                  <NavLink to="/student/login" icon={UserPlus}>Login / Register</NavLink>
                 )}
                 <NavLink to="/admin/login" icon={ShieldCheck}>Admin Login</NavLink>
               </>

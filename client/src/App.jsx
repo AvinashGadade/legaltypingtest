@@ -16,6 +16,7 @@ import Subscription from './pages/Subscription.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import Contact from './pages/Contact.jsx';
+import PrivacyPolicy from './pages/PrivacyPolicy.jsx';
 import ProtectedStudentRoute from './components/ProtectedStudentRoute.jsx';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute.jsx';
 
@@ -35,6 +36,7 @@ export default function App() {
       <Route path="/student/history" element={<ProtectedStudentRoute><StudentHistory /></ProtectedStudentRoute>} />
       <Route path="/subscription" element={<ProtectedStudentRoute><Subscription /></ProtectedStudentRoute>} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
       <Route path="/admin/upload" element={<ProtectedAdminRoute><AdminUpload /></ProtectedAdminRoute>} />

@@ -1,5 +1,6 @@
 import { Mail, Clock, HelpCircle, MessageSquare } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
+import Footer from '../components/Footer.jsx';
 
 const faqs = [
   {
@@ -118,10 +119,7 @@ export default function Contact() {
         </div>
       </main>
 
-      <footer className="border-t border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-400">
-        <p>LegalTypingTest · Bombay High Court Clerk Typing Practice &amp; Evaluation</p>
-        <p className="mt-1 text-xs">Qualification criteria: Net WPM ≥ 40 &amp; Marks ≥ 10 out of 20</p>
-      </footer>
+      <Footer />
     </div>
   );
 }
