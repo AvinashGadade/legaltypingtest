@@ -48,7 +48,7 @@ function PassageDisplay({ originalText, typedText, fontSize, dark }) {
 
   return (
     <div
-      className={`max-h-56 overflow-y-auto whitespace-pre-wrap select-none ${fontClass}`}
+      className={`max-h-36 overflow-y-auto whitespace-pre-wrap select-none sm:max-h-56 ${fontClass}`}
       style={{
         fontFamily: "Georgia, 'Times New Roman', Times, serif",
         lineHeight: '2.2rem',
@@ -502,21 +502,22 @@ export default function TypingTest() {
           <textarea
             ref={textareaRef}
             className={`
-              w-full resize-none rounded-lg p-5 outline-none transition-all
+              w-full resize-none rounded-lg p-4 outline-none transition-all
               focus:ring-2 ${taFontCls} ${t.tareaBase}
             `}
             style={{
-              minHeight: '340px',
+              minHeight: 'clamp(180px, 40vh, 340px)',
               fontFamily: "Georgia, 'Times New Roman', Times, serif",
               lineHeight: '2.1',
               letterSpacing: '0.015em',
             }}
-            placeholder="Start typing the passage here…"
+            placeholder="Tap here and start typing…"
             value={typedText}
             spellCheck={false}
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
+            inputMode="text"
             onContextMenu={(e) => e.preventDefault()}
             onPaste={(e) => e.preventDefault()}
             onCopy={(e) => e.preventDefault()}
