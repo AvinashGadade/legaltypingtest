@@ -35,7 +35,7 @@ const modes = [
 
 export default function PracticeSetup() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState('onscreen');
+  const [mode, setMode] = useState('paper');
 
   const locked = (type, passage) => {
     if (type === 'login') {
@@ -143,7 +143,7 @@ export default function PracticeSetup() {
         <div>
           <div className="mb-3 flex items-center gap-3">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-black text-white">2</span>
-            <h2 className="font-bold text-slate-800">Select Passage &amp; Start</h2>
+            <h2 className="font-bold text-slate-800">Select Passage &amp; Start <span className="text-xs font-normal text-slate-400">(double-click to start instantly)</span></h2>
           </div>
 
           <PassageSelector

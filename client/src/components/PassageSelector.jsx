@@ -53,18 +53,19 @@ export default function PassageSelector({ onStart, onLocked }) {
 
   const selected = passages.find((p) => String(p.id) === String(passageId));
 
-  const start = async () => {
-    if (!passageId || starting) return;
+  const start = async (id = passageId) => {
+    if (!id || starting) return;
     setMessage('');
     setStarting(true);
     const token   = localStorage.getItem('studentToken');
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const res  = await fetch(`${API}/passages/${passageId}`, { headers });
+    const res  = await fetch(`${API}/passages/${id}`, { headers });
     const data = await res.json();
     setStarting(false);
     if (!res.ok) {
-      if (data.code === 'LOGIN_REQUIRED')       return onLocked?.('login', selected);
-      if (data.code === 'SUBSCRIPTION_REQUIRED') return onLocked?.('subscription', selected);
+      const passageObj = passages.find((p) => String(p.id) === String(id));
+      if (data.code === 'LOGIN_REQUIRED')        return onLocked?.('login', passageObj);
+      if (data.code === 'SUBSCRIPTION_REQUIRED') return onLocked?.('subscription', passageObj);
       return setMessage(data.error || 'Unable to start this passage');
     }
     onStart(data.passage);
@@ -116,7 +117,9 @@ export default function PassageSelector({ onStart, onLocked }) {
       {/* Passage cards */}
       {passages.length > 0 && (
         <div className="mt-6">
-          <p className="mb-3 text-sm font-semibold text-slate-500 uppercase tracking-wider">Select Passage</p>
+          <p className="mb-3 text-sm font-semibold text-slate-500 uppercase tracking-wider">
+            Select Passage <span className="normal-case font-normal text-slate-400">— double-click to start instantly</span>
+          </p>
           <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             {passages.map((p) => {
               const isSelected = String(p.id) === String(passageId);
@@ -125,6 +128,8 @@ export default function PassageSelector({ onStart, onLocked }) {
                 <button
                   key={p.id}
                   onClick={() => setPassageId(String(p.id))}
+                  onDoubleClick={() => { setPassageId(String(p.id)); start(String(p.id)); }}
+                  title="Double-click to start instantly"
                   className={`flex items-center gap-3 rounded-xl border p-4 text-left transition-all duration-150 ${
                     isSelected
                       ? isLocked
